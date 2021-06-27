@@ -9,3 +9,5 @@ edition = "2018"
 [dependencies]
 tokio = {version = "1", features = ["full"]}
 bytes = "1"
+x25519-dalek = "1"
+rand_core = "0.*"
