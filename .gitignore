@@ -1,8 +1,15 @@
-debug/
-target/
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
 
-Cargo.lock
+# Test binary, built with `go test -c`
+*.test
 
-**/*.rs.bk
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
 
-*.pdb
+# Dependency directories (remove the comment below to include it)
+vendor/
