@@ -1,0 +1,3 @@
+- [ ] Write unit tests for key_establishment
+- [ ] Test key negotiation with client
+- [ ] Review project structure
