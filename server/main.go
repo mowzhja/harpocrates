@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	cm "github.com/mowzhja/harpocrates/crypto_module"
 )
 
 func main() {
