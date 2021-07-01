@@ -1,4 +1,4 @@
-package crypto_module
+package main
 
 import (
 	"crypto/elliptic"
@@ -16,7 +16,7 @@ func generateKeys() ([]byte, *big.Int, *big.Int, []byte, error) {
 }
 
 // Calculates the shared secret given the private key and public key of other party.
-func calculateSecret(pubBytes, privBytes []byte, x, y *big.Int) ([]byte, error) {
+func calculateSharedSecret(pubBytes, privBytes []byte, x, y *big.Int) ([]byte, error) {
 	E := elliptic.P521()
 	cx, cy := elliptic.Unmarshal(E, pubBytes) // client x, y
 

@@ -1,4 +1,4 @@
-package server
+package main
 
 import (
 	"fmt"
@@ -32,20 +32,20 @@ func handleErr(err error) {
 
 func handleClient(conn net.Conn) error {
 	defer conn.Close()
-	var buf []byte
+	buf := make([]byte, 1024)
 
-	_, err := conn.Read(buf)
+	_, err := conn.Read(buf[:])
 	handleErr(err)
 
-	privBytes, x, y, pubBytes, err := cm.generateKeys()
+	privBytes, x, y, pubBytes, err := generateKeys()
 	handleErr(err)
 
-	sharedSecret, err := cm.calculateSecret(buf, privBytes, x, y)
+	sharedSecret, err := calculateSharedSecret(buf, privBytes, x, y)
 	handleErr(err)
 
 	fmt.Printf("shared secret: %x\n", sharedSecret)
 
-	_, err = conn.Write(pubBytes)
+	_, err = conn.Write(pubBytes[:])
 	handleErr(err)
 
 	return nil

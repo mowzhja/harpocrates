@@ -1,8 +1,9 @@
-package crypto_module
+package main
 
 import (
 	"crypto/elliptic"
 	"crypto/rand"
+	"fmt"
 	"math/big"
 )
 
@@ -15,12 +16,13 @@ func generateKeys() ([]byte, *big.Int, *big.Int, []byte, error) {
 	return privKey, x, y, pubKey, err
 }
 
-// Calculates the shared secret given the private key and public key of other party.
-func calculateSecret(pubBytes, privBytes []byte, x, y *big.Int) ([]byte, error) {
+// Calculates the shared secret given the private key and public key of the other party.
+func calculateSharedSecret(pubBytes, privBytes []byte, x, y *big.Int) ([]byte, error) {
 	E := elliptic.P521()
-	cx, cy := elliptic.Unmarshal(E, pubBytes) // client x, y
 
-	sx, sy := E.ScalarMult(cx, cy, privBytes) // shared x, y
+	cx, cy := elliptic.Unmarshal(E, pubBytes) // client x, y
+	fmt.Println(pubBytes)
+	sx, sy := E.ScalarMult(cx, cy, privBytes[:]) // shared x, y
 
 	return elliptic.Marshal(E, sx, sy), nil
 }
