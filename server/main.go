@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	cm "github.com/mowzhja/harpocrates/crypto_module"
 )
 
 func main() {
@@ -37,10 +38,10 @@ func handleClient(conn net.Conn) error {
 	_, err := conn.Read(buf)
 	handleErr(err)
 
-	privBytes, x, y, pubBytes, err := generateKeys()
+	privBytes, x, y, pubBytes, err := cm.generateKeys()
 	handleErr(err)
 
-	sharedSecret, err := calculateSecret(buf, privBytes, x, y)
+	sharedSecret, err := cm.calculateSecret(buf, privBytes, x, y)
 	handleErr(err)
 
 	fmt.Printf("shared secret: %x\n", sharedSecret)
