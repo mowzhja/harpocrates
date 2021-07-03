@@ -1,1 +1,2 @@
 - [ ] Fix the the reading both server and client-side (buffer is too large)
+    - [ ] Add a header to each packet to indicate the length of the whole thing and allocate the buffer based on that value (which is ideal, cause it supports messages of whatever size)
