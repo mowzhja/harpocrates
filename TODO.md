@@ -1,2 +1,3 @@
 - [ ] Fix the the reading both server and client-side (buffer is too large)
     - [ ] Add a header to each packet to indicate the length of the whole thing and allocate the buffer based on that value (which is ideal, cause it supports messages of whatever size)
+- [ ] Add packet fragmentation => useless for now, but could be used to extend the functionality of harpocrates so that each fragment is sent over different networks, making it more resistent to interception and attack
