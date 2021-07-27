@@ -1,9 +1,7 @@
 package main
 
 import (
-	"fmt"
 	"net"
-	"os"
 )
 
 func main() {
@@ -23,29 +21,13 @@ func main() {
 	}
 }
 
-func handleErr(err error) {
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "fatal error: %s", err.Error())
-		os.Exit(1)
-	}
-}
-
 func handleClient(conn net.Conn) error {
 	defer conn.Close()
-	buf := make([]byte, 1024)
 
-	_, err := conn.Read(buf[:])
+	sharedKey, err := doECDHE(conn)
 	handleErr(err)
 
-	privBytes, x, y, pubBytes, err := generateKeys()
-	handleErr(err)
-
-	sharedSecret, err := calculateSharedSecret(buf, privBytes, x, y)
-	handleErr(err)
-
-	fmt.Printf("shared secret: %x\n", sharedSecret)
-
-	_, err = conn.Write(pubBytes[:])
+	err = doMutualAuth(conn, sharedKey)
 	handleErr(err)
 
 	return nil
