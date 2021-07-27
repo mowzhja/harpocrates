@@ -7,13 +7,14 @@ import (
 )
 
 func main() {
-	buf := make([]byte, 1024)
+	privBytes, x, y, pubBytes, err := generateKeys()
+	handleErr(err)
+
+	buf := make([]byte, len(pubBytes))
+
 	conn, err := net.Dial("tcp", "127.0.0.1:9001")
 	handleErr(err)
 	defer conn.Close()
-
-	privBytes, x, y, pubBytes, err := generateKeys()
-	handleErr(err)
 
 	_, err = conn.Write(pubBytes[:])
 	handleErr(err)
