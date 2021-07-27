@@ -9,6 +9,7 @@ import (
 	"net"
 )
 
+// Responsible for the actual ECDHE.
 func doECDHE(conn net.Conn) ([]byte, error) {
 	privBytes, x, y, pubBytes, err := generateKeys()
 	handleErr(err)

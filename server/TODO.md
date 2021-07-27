@@ -1,3 +1,6 @@
-- [ ] Write unit tests for key_establishment
-- [ ] Test key negotiation with client
-- [ ] Review project structure
+- [ ] Fix error handling
+- [ ] Write unit tests for ecdhe
+- [ ] Write unit tests for auth
+- [ ] Write unit tests for utils
+- [x] Test key negotiation with client
+- [x] Review project structure

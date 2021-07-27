@@ -1,12 +1,22 @@
 package main
 
 import (
+	"flag"
 	"net"
+	"strings"
 )
 
 func main() {
-	// TODO possibly given by CLI
-	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:9001")
+	var sb strings.Builder
+
+	ipAddr := flag.String("addr", "127.0.0.1", "ip address of the server")
+	port := flag.String("port", "9001", "server port")
+
+	sb.WriteString(*ipAddr)
+	sb.WriteString(":")
+	sb.WriteString(*port)
+
+	addr, err := net.ResolveTCPAddr("tcp", sb.String())
 	handleErr(err)
 
 	listener, err := net.ListenTCP("tcp", addr)
