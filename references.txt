@@ -1,0 +1,5 @@
+[ for the later report ]
+- Golang official docs
+- Go in Practice
+- The bookmarked stuff
+- Cryptography: Theory and Practice
