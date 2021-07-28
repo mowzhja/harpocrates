@@ -1,4 +1,4 @@
-- [ ] Fix error handling
+- [x] Fix error handling
 - [ ] Write unit tests for ecdhe
 - [ ] Write unit tests for auth
 - [ ] Write unit tests for utils

@@ -14,15 +14,6 @@ func handleErr(err error) {
 	}
 }
 
-// Wrapper for convenience and readability
-func returnErr(err error) error {
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func xor(x, y []byte) ([]byte, error) {
 	if subtle.ConstantTimeCompare(x, y) == 1 {
 		r := make([]byte, len(x))
