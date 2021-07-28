@@ -11,6 +11,7 @@ import (
 )
 
 // Implements the mutual challenge-response auth between server and clients.
+// Assumes the sharedKey is secret (only known to server and client)!
 func doMutualAuth(conn net.Conn, sharedKey []byte) error {
 	nonce := make([]byte, 32)
 	keySha := sha256.Sum256(sharedKey)
@@ -72,6 +73,40 @@ func doChallenge(conn net.Conn, cipher cipher.AEAD, nonce, m []byte) error {
 }
 
 // Authenticates client and server to each other.
+// TODO: actually implement all the parts
 func doAuth(conn net.Conn, cipher cipher.AEAD) error {
+	uname := make([]byte, 255) // FIXME: that's probably the wrong size
+
+	// TODO: build wrappers around read/write + encryption/decryption
+	_, err := conn.Read(uname)
+	if err != nil {
+		return err
+	}
+
+	getCorrespondingInfo(uname) // TODO:
+
+	_, err := conn.Write(salt + dataForArgon2)
+	if err != nil {
+		return err
+	}
+
+	_, err := conn.Read(clientProof)
+	if err != nil {
+		return err
+	}
+
+	err = verify(clientProof)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func verify() error {
+	computeClientSig()
+	getClientKey() // from XOR
+	checkClientKey(StoredKey)
+
 	return nil
 }

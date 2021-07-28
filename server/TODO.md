@@ -2,5 +2,6 @@
 - [ ] Write unit tests for ecdhe
 - [ ] Write unit tests for auth
 - [ ] Write unit tests for utils
+- [ ] Create the CSV(or other format) file containing user data (cause can't be bothered with DBs)
 - [x] Test key negotiation with client
 - [x] Review project structure
