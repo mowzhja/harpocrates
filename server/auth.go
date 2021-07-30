@@ -1,9 +1,6 @@
 package main
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
-	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
 	"errors"
@@ -16,27 +13,14 @@ func doMutualAuth(conn net.Conn, sharedKey []byte) error {
 	nonce := make([]byte, 32)
 	keySha := sha256.Sum256(sharedKey)
 
-	block, err := aes.NewCipher(sharedKey)
-	if err != nil {
-		return nil
-	}
-
-	cipher, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil
-	}
-
-	_, err = rand.Read(nonce)
-	if err != nil {
-		return nil
-	}
+	cipher, err := NewCipher(sharedKey)
 
 	servSecret, err := xor(nonce, keySha[:])
 	if err != nil {
 		return nil
 	}
 
-	err = doChallenge(conn, cipher, nonce, servSecret)
+	err = doChallenge(conn, cipher, servSecret)
 	if err != nil {
 		return nil
 	}
@@ -50,19 +34,17 @@ func doMutualAuth(conn net.Conn, sharedKey []byte) error {
 }
 
 // Responsible for the challenge part.
-func doChallenge(conn net.Conn, cipher cipher.AEAD, nonce, m []byte) error {
-	clientSecret := make([]byte, len(nonce))
-	expected := sha256.Sum256(nonce) // the value i expect to get from the client
+func doChallenge(conn net.Conn, cipher Cipher, m []byte) error {
+	expected := sha256.Sum256(cipher.getNonce()) // from client
 
-	ciphertext := cipher.Seal(nil, nonce, m, nil)
-	_, err := conn.Write(ciphertext)
+	_, err := cipher.encWrite(conn, m)
 	if err != nil {
-		return nil
+		return err
 	}
 
-	_, err = conn.Read(clientSecret)
+	clientSecret, _, err := cipher.decRead(conn)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	if subtle.ConstantTimeCompare(expected[:], clientSecret) != 1 {
@@ -74,28 +56,27 @@ func doChallenge(conn net.Conn, cipher cipher.AEAD, nonce, m []byte) error {
 
 // Authenticates client and server to each other.
 // TODO: actually implement all the parts
-func doAuth(conn net.Conn, cipher cipher.AEAD) error {
-	uname := make([]byte, 255) // FIXME: that's probably the wrong size
-
-	// TODO: build wrappers around read/write + encryption/decryption
-	_, err := conn.Read(uname)
+func doAuth(conn net.Conn, cipher Cipher) error {
+	uname, _, err := cipher.decRead(conn)
 	if err != nil {
 		return err
 	}
 
-	getCorrespondingInfo(uname) // TODO:
-
-	_, err := conn.Write(salt + dataForArgon2)
+	// suppose client and server agree on the KDF parameters already
+	// => no need to send them
+	salt, storedKey, servKey := getCorrespondingInfo(string(uname))
+	data := mergeChunks(salt, storedKey)
+	_, err = cipher.encWrite(conn, data)
 	if err != nil {
 		return err
 	}
 
-	_, err := conn.Read(clientProof)
+	clientProof, _, err := cipher.decRead(conn)
 	if err != nil {
 		return err
 	}
 
-	err = verify(clientProof)
+	err = verify(clientProof, servKey)
 	if err != nil {
 		return err
 	}
@@ -103,7 +84,7 @@ func doAuth(conn net.Conn, cipher cipher.AEAD) error {
 	return nil
 }
 
-func verify() error {
+func verify(clientProof, servKey []byte) error {
 	computeClientSig()
 	getClientKey() // from XOR
 	checkClientKey(StoredKey)
