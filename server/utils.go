@@ -27,3 +27,13 @@ func xor(x, y []byte) ([]byte, error) {
 
 	return nil, errors.New("byte strings should have the same length to XOR")
 }
+
+// Merges a bunch of chunks (of type []byte)
+func mergeChunks(chunks ...[]byte) []byte {
+	slab := []byte{}
+	for _, chunk := range chunks {
+		slab = append(slab, chunk...)
+	}
+
+	return slab
+}

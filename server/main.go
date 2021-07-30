@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+const PACKET_SIZE = 1000
+
 func main() {
 	var sb strings.Builder
 
