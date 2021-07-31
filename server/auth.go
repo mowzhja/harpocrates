@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
 	"errors"
@@ -10,73 +12,67 @@ import (
 // Implements the mutual challenge-response auth between server and clients.
 // Assumes the sharedKey is secret (only known to server and client)!
 func doMutualAuth(conn net.Conn, sharedKey []byte) error {
-	nonce := make([]byte, 32)
-	keySha := sha256.Sum256(sharedKey)
-
 	cipher, err := NewCipher(sharedKey)
-
-	servSecret, err := xor(nonce, keySha[:])
 	if err != nil {
 		return nil
 	}
 
-	err = doChallenge(conn, cipher, servSecret)
+	err = SCRAM(conn, cipher)
 	if err != nil {
 		return nil
-	}
-
-	err = doAuth(conn, cipher)
-	if err != nil {
-		return nil
-	}
-
-	return nil
-}
-
-// Responsible for the challenge part.
-func doChallenge(conn net.Conn, cipher Cipher, m []byte) error {
-	expected := sha256.Sum256(cipher.getNonce()) // from client
-
-	_, err := cipher.encWrite(conn, m)
-	if err != nil {
-		return err
-	}
-
-	clientSecret, _, err := cipher.decRead(conn)
-	if err != nil {
-		return err
-	}
-
-	if subtle.ConstantTimeCompare(expected[:], clientSecret) != 1 {
-		return errors.New("client authentication failed")
 	}
 
 	return nil
 }
 
 // Authenticates client and server to each other.
-// TODO: actually implement all the parts
-func doAuth(conn net.Conn, cipher Cipher) error {
-	uname, _, err := cipher.decRead(conn)
+// Implements SCRAM authentication, as specified in RFC5802. Returns error if the authentication failed.
+func SCRAM(conn net.Conn, cipher Cipher) error {
+	cdata, _, err := cipher.decRead(conn) // read client nonce and username
 	if err != nil {
 		return err
 	}
+
+	uname, cnonce := extractDataNonce(cdata, 32)
 
 	// suppose client and server agree on the KDF parameters already
 	// => no need to send them
 	salt, storedKey, servKey := getCorrespondingInfo(string(uname))
-	data := mergeChunks(salt, storedKey)
-	_, err = cipher.encWrite(conn, data)
+
+	snonce := make([]byte, 32)
+	_, err = rand.Read(snonce)
 	if err != nil {
 		return err
 	}
 
-	clientProof, _, err := cipher.decRead(conn)
+	snonce = mergeChunks(cnonce, snonce) // nonce used for the rest of the authentication procedure (by both client and server)
+
+	sdata := mergeChunks(cnonce, salt)
+	_, err = cipher.encWrite(conn, sdata)
 	if err != nil {
 		return err
 	}
 
-	err = verify(clientProof, servKey)
+	cdata, _, err = cipher.decRead(conn)
+	if err != nil {
+		return err
+	}
+	clientProof, cnonce := extractDataNonce(cdata, 64)
+	if subtle.ConstantTimeCompare(cnonce, snonce) != 1 {
+		return errors.New("the client and server nonces don't match")
+	}
+
+	err = verify(clientProof, storedKey)
+	if err != nil {
+		return err
+	}
+
+	serverSignature := hmac.New(sha256.New, clientProof)
+	serverSignature.Write(servKey)
+
+	// so the client can authenticate the server
+	sdata = mergeChunks(snonce, serverSignature.Sum(nil))
+	_, err = cipher.encWrite(conn, sdata)
 	if err != nil {
 		return err
 	}
@@ -84,10 +80,29 @@ func doAuth(conn net.Conn, cipher Cipher) error {
 	return nil
 }
 
-func verify(clientProof, servKey []byte) error {
-	computeClientSig()
-	getClientKey() // from XOR
-	checkClientKey(StoredKey)
+// Verifies the authenticity of the client.
+// Returns an error if the authentication failed for some reason.
+func verify(clientProof, storedKey []byte) error {
+	clientSignature := hmac.New(sha256.New, clientProof)
+	clientSignature.Write(storedKey)
+
+	clientKey, err := xor(clientSignature.Sum(nil), clientProof)
+	if err != nil {
+		return err
+	}
+
+	eq := subtle.ConstantTimeCompare(storedKey, sha256.New().Sum(clientKey))
+	if eq != 1 {
+		return errors.New("the stored key and the client key don't match")
+	}
 
 	return nil
+}
+
+// For convenience, extract the nonce and the data contained in a client message.
+func extractDataNonce(cdata []byte, nlen int) ([]byte, []byte) {
+	nonce := cdata[:nlen] // the nonce is the first 32/64 bytes
+	rest := cdata[(nlen + 1):]
+
+	return rest, nonce
 }
