@@ -39,15 +39,6 @@ func NewCipher(k []byte) (Cipher, error) {
 	}, nil
 }
 
-// A Java-like getter method for the key.
-func (c *Cipher) getKey() []byte {
-	return c.key
-}
-
-func (c *Cipher) getNonce() []byte {
-	return c.nonce
-}
-
 // Wrapper around encryption.
 func (c *Cipher) encrypt(plaintext []byte) []byte {
 	return c.aead.Seal(nil, c.nonce, plaintext, nil)
@@ -71,6 +62,9 @@ func (c *Cipher) decRead(conn net.Conn) ([]byte, int, error) {
 	m := make([]byte, PACKET_SIZE)
 
 	nr, err := conn.Read(m)
+	if err != nil {
+		return nil, 0, err
+	}
 	plaintext, err := c.decrypt(m)
 
 	return plaintext, nr, err
