@@ -4,4 +4,5 @@ package main
 
 func getCorrespondingInfo(uname string) ([]byte, []byte, []byte) {
 	// TODO:
+	return nil, nil, nil
 }
