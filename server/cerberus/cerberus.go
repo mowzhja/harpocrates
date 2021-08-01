@@ -1,4 +1,4 @@
-package main
+package cerberus
 
 import (
 	"crypto/hmac"
@@ -12,7 +12,7 @@ import (
 // Implements the mutual challenge-response auth between server and clients.
 // Assumes the sharedKey is secret (only known to server and client)!
 func doMutualAuth(conn net.Conn, sharedKey []byte) error {
-	cipher, err := NewCipher(sharedKey)
+	cipher, err := server.NewCipher(sharedKey)
 	if err != nil {
 		return nil
 	}
