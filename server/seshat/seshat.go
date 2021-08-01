@@ -9,6 +9,7 @@ import (
 	"os"
 )
 
+// Error handler for main.
 func HandleErr(err error) {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "fatal error: %s", err.Error())
@@ -16,6 +17,8 @@ func HandleErr(err error) {
 	}
 }
 
+// Performs bitwise xor for two bytestrings of the same length.
+// Returns the resulting bytestring and a nil error if successful, else a nil bytestring and an error.
 func XOR(x, y []byte) ([]byte, error) {
 	if subtle.ConstantTimeCompare(x, y) == 1 {
 		r := make([]byte, len(x))
@@ -30,7 +33,8 @@ func XOR(x, y []byte) ([]byte, error) {
 	return nil, errors.New("byte strings should have the same length to XOR")
 }
 
-// Merges a bunch of chunks (of type []byte)
+// Merges a bunch of chunks (of type []byte).
+// Returns the slab resulting from the merger.
 func MergeChunks(chunks ...[]byte) []byte {
 	slab := []byte{}
 	for _, chunk := range chunks {
