@@ -1,4 +1,4 @@
-package main
+package hermes
 
 import (
 	"crypto/elliptic"
@@ -7,23 +7,25 @@ import (
 	"fmt"
 	"math/big"
 	"net"
+
+	"github.com/mowzhja/harpocrates/server/seshat"
 )
 
 // Responsible for the actual ECDHE.
-func doECDHE(conn net.Conn) ([]byte, error) {
+func DoECDHE(conn net.Conn) ([]byte, error) {
 	privBytes, x, y, pubBytes, err := generateKeys()
-	handleErr(err)
+	seshat.HandleErr(err)
 
 	buf := make([]byte, len(pubBytes))
 
 	_, err = conn.Read(buf[:])
-	handleErr(err)
+	seshat.HandleErr(err)
 
 	sharedSecret, err := calculateSharedSecret(buf, privBytes, x, y)
-	handleErr(err)
+	seshat.HandleErr(err)
 
 	_, err = conn.Write(pubBytes[:])
-	handleErr(err)
+	seshat.HandleErr(err)
 
 	sharedKey := sha512.Sum512_256(sharedSecret)
 

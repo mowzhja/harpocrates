@@ -4,9 +4,11 @@ import (
 	"flag"
 	"net"
 	"strings"
-)
 
-const PACKET_SIZE = 1000
+	"github.com/mowzhja/harpocrates/server/cerberus"
+	"github.com/mowzhja/harpocrates/server/hermes"
+	"github.com/mowzhja/harpocrates/server/seshat"
+)
 
 func main() {
 	var sb strings.Builder
@@ -19,14 +21,14 @@ func main() {
 	sb.WriteString(*port)
 
 	addr, err := net.ResolveTCPAddr("tcp", sb.String())
-	handleErr(err)
+	seshat.HandleErr(err)
 
 	listener, err := net.ListenTCP("tcp", addr)
-	handleErr(err)
+	seshat.HandleErr(err)
 
 	for {
 		conn, err := listener.Accept()
-		handleErr(err)
+		seshat.HandleErr(err)
 
 		// goroutine
 		go handleClient(conn)
@@ -36,11 +38,11 @@ func main() {
 func handleClient(conn net.Conn) error {
 	defer conn.Close()
 
-	sharedKey, err := doECDHE(conn)
-	handleErr(err)
+	sharedKey, err := hermes.DoECDHE(conn)
+	seshat.HandleErr(err)
 
-	err = doMutualAuth(conn, sharedKey)
-	handleErr(err)
+	err = cerberus.DoMutualAuth(conn, sharedKey)
+	seshat.HandleErr(err)
 
 	return nil
 }

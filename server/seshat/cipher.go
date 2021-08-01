@@ -1,4 +1,4 @@
-package main
+package seshat
 
 import (
 	"crypto/aes"
@@ -39,27 +39,17 @@ func NewCipher(k []byte) (Cipher, error) {
 	}, nil
 }
 
-// Wrapper around encryption.
-func (c *Cipher) encrypt(plaintext []byte) []byte {
-	return c.aead.Seal(nil, c.nonce, plaintext, nil)
-}
-
-// Wrapper around decryption.
-func (c *Cipher) decrypt(ciphertext []byte) ([]byte, error) {
-	return c.aead.Open(nil, c.nonce, ciphertext, nil)
-}
-
 // Wrapper around conn.Write() to make sure we send encrypted data over the channel.
 // IMPORTANT: this method assumes that the plaintext is of sufficient size to be transmitted all at once, so fragmentation must happen elsewhere!
-func (c *Cipher) encWrite(conn net.Conn, plaintext []byte) (int, error) {
+func (c *Cipher) EncWrite(conn net.Conn, plaintext []byte) (int, error) {
 	aeadtext := c.encrypt(plaintext)
 	return conn.Write(aeadtext)
 }
 
 // Wrapper around conn.Read() to make sure we read decrypted data.
 // IMPORTANT: this method assumes that the ciphertext is of sufficient size to be read all at once, so fragmentation must happen elsewhere!
-func (c *Cipher) decRead(conn net.Conn) ([]byte, int, error) {
-	m := make([]byte, PACKET_SIZE)
+func (c *Cipher) DecRead(conn net.Conn) ([]byte, int, error) {
+	m := make([]byte, 1000) // FIXME: hermes.PACKET_SIZE
 
 	nr, err := conn.Read(m)
 	if err != nil {
@@ -68,4 +58,14 @@ func (c *Cipher) decRead(conn net.Conn) ([]byte, int, error) {
 	plaintext, err := c.decrypt(m)
 
 	return plaintext, nr, err
+}
+
+// Wrapper around encryption.
+func (c *Cipher) encrypt(plaintext []byte) []byte {
+	return c.aead.Seal(nil, c.nonce, plaintext, nil)
+}
+
+// Wrapper around decryption.
+func (c *Cipher) decrypt(ciphertext []byte) ([]byte, error) {
+	return c.aead.Open(nil, c.nonce, ciphertext, nil)
 }
