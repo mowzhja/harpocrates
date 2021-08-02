@@ -52,7 +52,7 @@ func calculateSharedSecret(E elliptic.Curve, pubKey, privKey []byte) ([]byte, er
 	}
 
 	cx, cy := elliptic.Unmarshal(E, pubKey)
-	// Unmarshal() return nil, nil if there were errors: https://golang.google.cn/src/crypto/elliptic/elliptic.go?s=9365:9421#L330
+	// Unmarshal() returns (nil, nil) if there were errors: https://golang.google.cn/src/crypto/elliptic/elliptic.go?s=9365:9421#L330
 	if cx == nil || cy == nil {
 		return nil, errors.New("error unmarshaling the client's public key")
 	}
