@@ -60,8 +60,8 @@ func Test_calculateSharedSecret_Curves(t *testing.T) {
 // Tests the validity of some simulated exchanges (further test coverage should be obtained through integration tests).
 func Test_calculateSharedSecret_Exchanges(t *testing.T) {
 	E := elliptic.P521()
-	N := 100
 
+	N := 100
 	for i := 0; i < N; i++ {
 		sPriv, sPub, err := generateKeys(E) // server side
 		if err != nil {
