@@ -13,10 +13,12 @@ type Cipher struct {
 	aead  cipher.AEAD
 }
 
-// Creates a new Cipher given the key
-// Returns the Cipher and nil in case of a success, an empty Cipher and an error otherwise
+const BYTE_SEC = 32 // 32 * 8 == 256
+
+// Creates a new Cipher given the key.
+// Returns the Cipher and nil in case of a success, an empty Cipher and an error otherwise.
 func NewCipher(k []byte) (Cipher, error) {
-	n := make([]byte, 32)
+	n := make([]byte, BYTE_SEC)
 	_, err := rand.Read(n)
 	if err != nil {
 		return Cipher{}, err
@@ -62,10 +64,12 @@ func (c *Cipher) DecRead(conn net.Conn) ([]byte, int, error) {
 
 // Wrapper around encryption.
 func (c *Cipher) encrypt(plaintext []byte) []byte {
-	return c.aead.Seal(nil, c.nonce, plaintext, nil)
+	nonce := c.nonce[:c.aead.NonceSize()]
+	return c.aead.Seal(nil, nonce, plaintext, nil)
 }
 
 // Wrapper around decryption.
 func (c *Cipher) decrypt(ciphertext []byte) ([]byte, error) {
-	return c.aead.Open(nil, c.nonce, ciphertext, nil)
+	nonce := c.nonce[:c.aead.NonceSize()]
+	return c.aead.Open(nil, nonce, ciphertext, nil)
 }
