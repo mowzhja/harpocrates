@@ -3,7 +3,6 @@
 package seshat
 
 import (
-	"crypto/subtle"
 	"errors"
 	"fmt"
 	"os"
@@ -20,11 +19,11 @@ func HandleErr(err error) {
 // Performs bitwise xor for two bytestrings of the same length.
 // Returns the resulting bytestring and a nil error if successful, else a nil bytestring and an error.
 func XOR(x, y []byte) ([]byte, error) {
-	if subtle.ConstantTimeCompare(x, y) == 1 {
+	if len(x) == len(y) {
 		r := make([]byte, len(x))
 
-		for idx, bx := range x {
-			r = append(r, bx^y[idx])
+		for i := range x {
+			r[i] = x[i] ^ y[i]
 		}
 
 		return r, nil
@@ -37,6 +36,7 @@ func XOR(x, y []byte) ([]byte, error) {
 // Returns the slab resulting from the merger.
 func MergeChunks(chunks ...[]byte) []byte {
 	slab := []byte{}
+
 	for _, chunk := range chunks {
 		slab = append(slab, chunk...)
 	}
