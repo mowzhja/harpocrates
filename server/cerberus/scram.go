@@ -42,7 +42,10 @@ func scram(conn net.Conn, cipher seshat.Cipher) error {
 	}
 
 	// suppose client and server agree on the KDF parameters already
-	salt, storedKey, servKey := coeus.GetCorrespondingInfo(string(uname))
+	salt, storedKey, servKey, err := coeus.GetCorrespondingInfo(string(uname))
+	if err != nil {
+		return err
+	}
 
 	authMessage, snonce, err := doChallenge(conn, cnonce, salt, cipher)
 	if err != nil {

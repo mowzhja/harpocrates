@@ -2,9 +2,39 @@
 // As such, package coeus is responsible for the interaction with the filesystem (it queries it for information).
 package coeus
 
-// TODO: This package server to interact with the filesystem (reading user data and the like)
+import (
+	"encoding/csv"
+	"io"
+	"os"
+)
 
-func GetCorrespondingInfo(uname string) ([]byte, []byte, []byte) {
-	// TODO:
-	return nil, nil, nil
+const DB_FILE = "user_data.csv"
+
+func GetCorrespondingInfo(uname string) ([]byte, []byte, []byte, error) {
+	var salt, storedKey, servKey []byte
+
+	file, err := os.Open(DB_FILE)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	reader := csv.NewReader(file)
+
+	for {
+		record, err := reader.Read()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return nil, nil, nil, err
+		}
+
+		if record[0] == uname {
+			// got a match
+			salt = []byte(record[1])
+			storedKey = []byte(record[2])
+			servKey = []byte(record[3])
+		}
+	}
+
+	return salt, storedKey, servKey, nil
 }
