@@ -44,17 +44,18 @@ func scram(conn net.Conn, cipher seshat.Cipher) error {
 	// suppose client and server agree on the KDF parameters already
 	salt, storedKey, servKey := coeus.GetCorrespondingInfo(string(uname))
 
-	clientProof, snonce, err := doChallenge(conn, cnonce, salt, cipher)
+	authMessage, snonce, err := doChallenge(conn, cnonce, salt, cipher)
 	if err != nil {
 		return err
 	}
 
-	err = authClient(clientProof, storedKey)
+	// in my implementation AuthMessage == ClientProof (ignore SASL compatibility)
+	err = authClient(authMessage, storedKey)
 	if err != nil {
 		return err
 	}
 
-	err = authServer(conn, clientProof, servKey, snonce, cipher)
+	err = authServer(conn, authMessage, servKey, snonce, cipher)
 	if err != nil {
 		return err
 	}
@@ -83,7 +84,7 @@ func doChallenge(conn net.Conn, cnonce, salt []byte, cipher seshat.Cipher) ([]by
 		return nil, nil, err
 	}
 
-	clientProof, cnonce, err := extractDataNonce(cdata, 64)
+	authMessage, cnonce, err := extractDataNonce(cdata, 64)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -92,14 +93,14 @@ func doChallenge(conn net.Conn, cnonce, salt []byte, cipher seshat.Cipher) ([]by
 		return nil, nil, errors.New("the client and server nonces don't match")
 	}
 
-	return clientProof, snonce, nil
+	return authMessage, snonce, nil
 }
 
 // Verifies the authenticity of the client.
 // Returns an error if the authentication failed for some reason.
-func authClient(clientProof, storedKey []byte) error {
-	clientSignature := hmac.New(sha256.New, clientProof)
-	clientSignature.Write(storedKey)
+func authClient(authMessage, storedKey []byte) error {
+	clientSignature := hmac.New(sha256.New, storedKey)
+	clientSignature.Write(authMessage)
 
 	clientKey, err := seshat.XOR(clientSignature.Sum(nil), clientProof)
 	if err != nil {
@@ -116,8 +117,8 @@ func authClient(clientProof, storedKey []byte) error {
 
 // Sends the necesarry info for server authentication to the client.
 // Returns an error in case there was a problem with any of the steps or if server authentication failed client-side.
-func authServer(conn net.Conn, clientProof, servKey, snonce []byte, cipher seshat.Cipher) error {
-	serverSignature, err := getServerSig(clientProof, servKey)
+func authServer(conn net.Conn, authMessage, servKey, snonce []byte, cipher seshat.Cipher) error {
+	serverSignature, err := getServerSig(authMessage, servKey)
 	if err != nil {
 		return err
 	}
@@ -148,9 +149,9 @@ func extractDataNonce(cdata []byte, nlen int) ([]byte, []byte, error) {
 }
 
 // Computes server signature given client proof and server key.
-func getServerSig(clientProof, servKey []byte) ([]byte, error) {
-	serverSignature := hmac.New(sha256.New, clientProof)
-	n, err := serverSignature.Write(servKey)
+func getServerSig(authMessage, servKey []byte) ([]byte, error) {
+	serverSignature := hmac.New(sha256.New, servKey)
+	n, err := serverSignature.Write(authMessage)
 	if err != nil {
 		return nil, err
 	} else if n < 32 {

@@ -6,6 +6,8 @@ import (
 	"encoding/hex"
 	"math/rand"
 	"testing"
+
+	"golang.org/x/crypto/argon2"
 )
 
 // Tests errorless function of the data extraction.
@@ -118,4 +120,17 @@ func Test_getServerSig(t *testing.T) {
 				hex.EncodeToString(check.Sum(nil)), hex.EncodeToString(sig))
 		}
 	}
+}
+
+// Tests normal verification of the various client-side parameters.
+func Test_authClient(t *testing.T) {
+	passwd := []byte("secretpass")
+	salt := make([]byte, 32)
+	rand.Read(salt)
+	// made up parameters for SCRAM
+	saltedPassword := argon2.Key(passwd, salt, 1, 2_000_000, 2, 32)
+	clientKey := hmac.New(sha256.New, saltedPassword)
+	clientKey.Write([]byte("Client Key"))
+	storedKey := sha256.Sum256(clientKey.Sum(nil))
+	clientSig := hmac.New(sha256.New, storedKey[:])
 }
