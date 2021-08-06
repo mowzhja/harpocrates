@@ -41,51 +41,20 @@ func scram(conn net.Conn, cipher seshat.Cipher) error {
 		return err
 	}
 
-	// we suppose client and server agree on the KDF parameters already
-	// => no need to send them
+	// suppose client and server agree on the KDF parameters already
 	salt, storedKey, servKey := coeus.GetCorrespondingInfo(string(uname))
 
-	snonce := make([]byte, 32)
-	_, err = rand.Read(snonce)
+	clientProof, snonce, err := doChallenge(conn, cnonce, salt, cipher)
 	if err != nil {
 		return err
 	}
 
-	snonce = seshat.MergeChunks(cnonce, snonce) // nonce used for the rest of the authentication procedure (by both client and server)
-
-	sdata := seshat.MergeChunks(cnonce, salt)
-	_, err = cipher.EncWrite(conn, sdata)
+	err = authClient(clientProof, storedKey)
 	if err != nil {
 		return err
 	}
 
-	cdata, _, err = cipher.DecRead(conn)
-	if err != nil {
-		return err
-	}
-
-	clientProof, cnonce, err := extractDataNonce(cdata, 64)
-	if err != nil {
-		return err
-	}
-
-	if subtle.ConstantTimeCompare(cnonce, snonce) != 1 {
-		return errors.New("the client and server nonces don't match")
-	}
-
-	err = verifyClient(clientProof, storedKey)
-	if err != nil {
-		return err
-	}
-
-	serverSignature, err := getServerSig(clientProof, servKey)
-	if err != nil {
-		return err
-	}
-
-	// so the client can authenticate the server
-	sdata = seshat.MergeChunks(snonce, serverSignature)
-	_, err = cipher.EncWrite(conn, sdata)
+	err = authServer(conn, clientProof, servKey, snonce, cipher)
 	if err != nil {
 		return err
 	}
@@ -93,9 +62,42 @@ func scram(conn net.Conn, cipher seshat.Cipher) error {
 	return nil
 }
 
+// Does the challenge part of the challenge-response authentication.
+func doChallenge(conn net.Conn, cnonce, salt []byte, cipher seshat.Cipher) ([]byte, []byte, error) {
+	snonce := make([]byte, 32)
+	_, err := rand.Read(snonce)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	snonce = seshat.MergeChunks(cnonce, snonce) // nonce used for the rest of the authentication procedure (by both client and server)
+
+	sdata := seshat.MergeChunks(cnonce, salt)
+	_, err = cipher.EncWrite(conn, sdata)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	cdata, _, err := cipher.DecRead(conn)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	clientProof, cnonce, err := extractDataNonce(cdata, 64)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if subtle.ConstantTimeCompare(cnonce, snonce) != 1 {
+		return nil, nil, errors.New("the client and server nonces don't match")
+	}
+
+	return clientProof, snonce, nil
+}
+
 // Verifies the authenticity of the client.
 // Returns an error if the authentication failed for some reason.
-func verifyClient(clientProof, storedKey []byte) error {
+func authClient(clientProof, storedKey []byte) error {
 	clientSignature := hmac.New(sha256.New, clientProof)
 	clientSignature.Write(storedKey)
 
@@ -108,6 +110,26 @@ func verifyClient(clientProof, storedKey []byte) error {
 	if eq != 1 {
 		return errors.New("the stored key and the client key don't match")
 	}
+
+	return nil
+}
+
+// Sends the necesarry info for server authentication to the client.
+// Returns an error in case there was a problem with any of the steps or if server authentication failed client-side.
+func authServer(conn net.Conn, clientProof, servKey, snonce []byte, cipher seshat.Cipher) error {
+	serverSignature, err := getServerSig(clientProof, servKey)
+	if err != nil {
+		return err
+	}
+
+	// so the client can authenticate the server
+	sdata := seshat.MergeChunks(snonce, serverSignature)
+	_, err = cipher.EncWrite(conn, sdata)
+	if err != nil {
+		return err
+	}
+
+	// TODO: add some code with which the client can confirm server auth
 
 	return nil
 }
