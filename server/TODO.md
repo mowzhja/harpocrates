@@ -1,10 +1,10 @@
 - [x] Fix error handling
 - [x] Write unit tests for ecdhe
-- [ ] look at the updated draft for SCRAM and adjust stuff accordingly
+- [x] look at the updated draft for SCRAM and adjust stuff accordingly
 - [x] Write unit tests for auth
 - [x] Write unit tests for utils
 - [ ] Deal with connection buffers and shit (look at bookmarks)
-- [ ] Create the CSV(or other format) file containing user data (cause can't be bothered with DBs)
+- [x] Create the CSV(or other format) file containing user data (cause can't be bothered with DBs)
 - [ ] Document functions better
 - [x] Test key negotiation with client
 - [x] Review project structure
