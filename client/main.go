@@ -22,7 +22,7 @@ func main() {
 	_, err = conn.Read(buf[:])
 	handleErr(err)
 
-	sharedSecret, err := calculateSharedSecret(buf, privBytes, x, y)
+	sharedSecret, err := anubis.calculateSharedSecret(buf, privBytes, x, y)
 	handleErr(err)
 
 	fmt.Printf("shared secret: %x\n", sharedSecret)
