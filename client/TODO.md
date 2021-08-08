@@ -1,1 +1,1 @@
-- [ ] Write some code to test key exchange with server
+- [ ] test client-server interaction
