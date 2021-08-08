@@ -1,4 +1,4 @@
-package seshat
+package anubis
 
 import (
 	"crypto/aes"

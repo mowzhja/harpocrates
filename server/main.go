@@ -5,8 +5,8 @@ import (
 	"net"
 	"strings"
 
+	"github.com/mowzhja/harpocrates/server/anubis"
 	"github.com/mowzhja/harpocrates/server/cerberus"
-	"github.com/mowzhja/harpocrates/server/hermes"
 	"github.com/mowzhja/harpocrates/server/seshat"
 )
 
@@ -38,7 +38,7 @@ func main() {
 func handleClient(conn net.Conn) error {
 	defer conn.Close()
 
-	sharedKey, err := hermes.DoECDHE(conn)
+	sharedKey, err := anubis.DoECDHE(conn)
 	seshat.HandleErr(err)
 
 	err = cerberus.DoMutualAuth(conn, sharedKey)

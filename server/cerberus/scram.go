@@ -8,6 +8,7 @@ import (
 	"errors"
 	"net"
 
+	"github.com/mowzhja/harpocrates/server/anubis"
 	"github.com/mowzhja/harpocrates/server/coeus"
 	"github.com/mowzhja/harpocrates/server/seshat"
 )
@@ -15,7 +16,7 @@ import (
 // Implements the mutual challenge-response auth between server and clients.
 // Assumes the sharedKey is secret (only known to server and client)!
 func DoMutualAuth(conn net.Conn, sharedKey []byte) error {
-	cipher, err := seshat.NewCipher(sharedKey)
+	cipher, err := anubis.NewCipher(sharedKey)
 	if err != nil {
 		return nil
 	}
@@ -30,7 +31,7 @@ func DoMutualAuth(conn net.Conn, sharedKey []byte) error {
 
 // Authenticates client and server to each other.
 // Implements SCRAM authentication, as specified in RFC5802. Returns error if the authentication failed.
-func scram(conn net.Conn, cipher seshat.Cipher) error {
+func scram(conn net.Conn, cipher anubis.Cipher) error {
 	cdata, _, err := cipher.DecRead(conn) // read client nonce and username
 	if err != nil {
 		return err
@@ -68,7 +69,7 @@ func scram(conn net.Conn, cipher seshat.Cipher) error {
 
 // Does the challenge part of the challenge-response authentication.
 // Returns the authMessage of the client and an error (nil if all is good).
-func doChallenge(conn net.Conn, cnonce, salt []byte, cipher seshat.Cipher) ([]byte, error) {
+func doChallenge(conn net.Conn, cnonce, salt []byte, cipher anubis.Cipher) ([]byte, error) {
 	snonce := make([]byte, 32)
 	_, err := rand.Read(snonce)
 	if err != nil {
@@ -128,7 +129,7 @@ func authClient(authMessage, storedKey []byte) error {
 
 // Sends the necesarry info for server authentication to the client.
 // Returns an error in case there was a problem with any of the steps or if server authentication failed client-side.
-func authServer(conn net.Conn, authMessage, servKey []byte, cipher seshat.Cipher) error {
+func authServer(conn net.Conn, authMessage, servKey []byte, cipher anubis.Cipher) error {
 	serverSignature, err := getServerSig(authMessage, servKey)
 	if err != nil {
 		return err

@@ -1,10 +1,12 @@
-package seshat
+package anubis
 
 import (
 	"crypto/aes"
 	"crypto/cipher"
 	"math/rand"
 	"net"
+
+	"github.com/mowzhja/harpocrates/server/hermes"
 )
 
 type Cipher struct {
@@ -51,9 +53,7 @@ func (c *Cipher) EncWrite(conn net.Conn, plaintext []byte) (int, error) {
 // Wrapper around conn.Read() to make sure we read decrypted data.
 // IMPORTANT: this method assumes that the ciphertext is of sufficient size to be read all at once, so fragmentation must happen elsewhere!
 func (c *Cipher) DecRead(conn net.Conn) ([]byte, int, error) {
-	m := make([]byte, 1000) // FIXME: hermes.PACKET_SIZE
-
-	nr, err := conn.Read(m)
+	nr, err, m := hermes.Read(conn)
 	if err != nil {
 		return nil, 0, err
 	}

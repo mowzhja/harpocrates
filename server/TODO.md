@@ -8,3 +8,4 @@
 - [ ] Document functions better
 - [x] Test key negotiation with client
 - [x] Review project structure
+- [ ] INTEGRATION TESTS!

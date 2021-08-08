@@ -1,4 +1,4 @@
-package hermes
+package anubis
 
 import (
 	"crypto/elliptic"
