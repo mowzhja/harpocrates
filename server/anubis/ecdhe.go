@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net"
 
+	"github.com/mowzhja/harpocrates/server/hermes"
 	"github.com/mowzhja/harpocrates/server/seshat"
 )
 
@@ -17,15 +18,13 @@ func DoECDHE(conn net.Conn) ([]byte, error) {
 	privKey, pubKey, err := generateKeys(E)
 	seshat.HandleErr(err)
 
-	clientPub := make([]byte, len(pubKey))
-
-	_, err = conn.Read(clientPub[:])
+	clientPub, _, err := hermes.Read(conn)
 	seshat.HandleErr(err)
 
 	sharedSecret, err := calculateSharedSecret(E, clientPub, privKey)
 	seshat.HandleErr(err)
 
-	_, err = conn.Write(pubKey[:])
+	_, err = hermes.Write(conn, pubKey)
 	seshat.HandleErr(err)
 
 	sharedKey := sha512.Sum512_256(sharedSecret)

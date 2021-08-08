@@ -21,17 +21,17 @@ func Write(conn net.Conn, msg []byte) (int, error) {
 
 // Wrapper to read data accross a TCP connection.
 // To mantain the API consistent with the net API, on top of returning the message read from the connection it returns the number of bytes read and an error.
-func Read(conn net.Conn) (int, error, []byte) {
+func Read(conn net.Conn) ([]byte, int, error) {
 	hexMsg, err := bufio.NewReader(conn).ReadBytes('\n')
 	if err != nil {
-		return 0, err, nil
+		return nil, 0, err
 	}
 
 	var msg []byte
 	n, err := hex.Decode(msg, hexMsg)
 	if err != nil {
-		return 0, err, nil
+		return nil, 0, err
 	}
 
-	return n, nil, msg
+	return msg, n, nil
 }

@@ -43,21 +43,19 @@ func NewCipher(k []byte) (Cipher, error) {
 	}, nil
 }
 
-// Wrapper around conn.Write() to make sure we send encrypted data over the channel.
-// IMPORTANT: this method assumes that the plaintext is of sufficient size to be transmitted all at once, so fragmentation must happen elsewhere!
+// Wrapper around hermes.Write() to make sure we send encrypted data over the channel.
 func (c *Cipher) EncWrite(conn net.Conn, plaintext []byte) (int, error) {
 	aeadtext := c.encrypt(plaintext)
-	return conn.Write(aeadtext)
+	return hermes.Write(conn, aeadtext)
 }
 
-// Wrapper around conn.Read() to make sure we read decrypted data.
-// IMPORTANT: this method assumes that the ciphertext is of sufficient size to be read all at once, so fragmentation must happen elsewhere!
+// Wrapper around hermes.Read() to make sure we read encrypted data.
 func (c *Cipher) DecRead(conn net.Conn) ([]byte, int, error) {
-	nr, err, m := hermes.Read(conn)
+	ciphertext, nr, err := hermes.Read(conn)
 	if err != nil {
 		return nil, 0, err
 	}
-	plaintext, err := c.decrypt(m)
+	plaintext, err := c.decrypt(ciphertext)
 
 	return plaintext, nr, err
 }
