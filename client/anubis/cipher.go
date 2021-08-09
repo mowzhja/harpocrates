@@ -3,6 +3,7 @@ package anubis
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"errors"
 	"math/rand"
 	"net"
 
@@ -43,6 +44,16 @@ func NewCipher(k []byte) (Cipher, error) {
 	}, nil
 }
 
+// Returns the nonce of a Cipher.
+func (c *Cipher) Nonce() []byte {
+	return c.nonce
+}
+
+// Returns the key of a Cipher.
+func (c *Cipher) Key() []byte {
+	return c.key
+}
+
 // Wrapper around conn.Write() to make sure we send encrypted data over the channel.
 // IMPORTANT: this method assumes that the plaintext is of sufficient size to be transmitted all at once, so fragmentation must happen elsewhere!
 func (c *Cipher) EncWrite(conn net.Conn, plaintext []byte) (int, error) {
@@ -60,6 +71,16 @@ func (c *Cipher) DecRead(conn net.Conn) ([]byte, int, error) {
 	plaintext, err := c.decrypt(m)
 
 	return plaintext, nr, err
+}
+
+// Updates the nonce of a given cipher.
+func (c *Cipher) UpdateNonce(newNonce []byte) error {
+	c.nonce = newNonce
+	if string(c.nonce) != string(newNonce) {
+		return errors.New("failed to update the nonce")
+	}
+
+	return nil
 }
 
 // Wrapper around encryption.

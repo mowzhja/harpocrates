@@ -2,26 +2,25 @@ package cerberus
 
 import (
 	"crypto/hmac"
-	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
 	"errors"
 	"net"
 
 	"github.com/mowzhja/harpocrates/server/anubis"
-	"github.com/mowzhja/harpocrates/server/coeus"
 	"github.com/mowzhja/harpocrates/server/seshat"
+	"golang.org/x/crypto/argon2"
 )
 
 // Implements the mutual challenge-response auth between server and clients.
 // Assumes the sharedKey is secret (only known to server and client)!
-func DoMutualAuth(conn net.Conn, sharedKey []byte) error {
+func DoMutualAuth(conn net.Conn, sharedKey, uname, passwd []byte) error {
 	cipher, err := anubis.NewCipher(sharedKey)
 	if err != nil {
 		return nil
 	}
 
-	err = scram(conn, cipher)
+	err = scram(conn, cipher, uname, passwd)
 	if err != nil {
 		return nil
 	}
@@ -31,30 +30,29 @@ func DoMutualAuth(conn net.Conn, sharedKey []byte) error {
 
 // Authenticates client and server to each other.
 // Implements SCRAM authentication, as specified in RFC5802. Returns error if the authentication failed.
-func scram(conn net.Conn, cipher anubis.Cipher) error {
-	cdata, _, err := cipher.DecRead(conn) // read client nonce and username
+func scram(conn net.Conn, cipher anubis.Cipher, uname, passwd []byte) error {
+	cdata := seshat.MergeChunks(cipher.Nonce(), uname)
+	_, err := cipher.EncWrite(conn, cdata)
 	if err != nil {
 		return err
 	}
 
-	uname, cnonce, err := extractDataNonce(cdata, 32)
+	salt, snonce, err := doChallenge(conn, cipher)
 	if err != nil {
 		return err
 	}
 
-	// suppose client and server agree on the KDF parameters already
-	salt, storedKey, servKey, err := coeus.GetCorrespondingInfo(string(uname))
+	err = cipher.UpdateNonce(snonce)
 	if err != nil {
 		return err
 	}
 
-	authMessage, err := doChallenge(conn, cnonce, salt, cipher)
+	authMessage, servKey, err := computeParams(passwd, salt, cipher)
 	if err != nil {
 		return err
 	}
 
-	// in my implementation AuthMessage == ClientProof (ignore SASL compatibility)
-	err = authClient(authMessage, storedKey)
+	err = authClient(conn, authMessage, cipher)
 	if err != nil {
 		return err
 	}
@@ -68,60 +66,57 @@ func scram(conn net.Conn, cipher anubis.Cipher) error {
 }
 
 // Does the challenge part of the challenge-response authentication.
-// Returns the authMessage of the client and an error (nil if all is good).
-func doChallenge(conn net.Conn, cnonce, salt []byte, cipher anubis.Cipher) ([]byte, error) {
-	snonce := make([]byte, 32)
-	_, err := rand.Read(snonce)
+// Returns the salt and the server nonce and an error if anything went wrong.
+func doChallenge(conn net.Conn, cipher anubis.Cipher) ([]byte, []byte, error) {
+	sdata, _, err := cipher.DecRead(conn)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	snonce = seshat.MergeChunks(cnonce, snonce) // nonce used for the rest of the authentication procedure (by both client and server)
-
-	sdata := seshat.MergeChunks(cnonce, salt)
-	_, err = cipher.EncWrite(conn, sdata)
+	salt, snonce, err := extractDataNonce(sdata, 64)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+	if subtle.ConstantTimeCompare(snonce[:32], cipher.Nonce()) != 1 {
+		return nil, nil, errors.New("the server used the incorrect client nonce")
 	}
 
-	authMessage, _, err := cipher.DecRead(conn)
+	return salt, snonce, nil
+}
+
+// Computes the parameters used for SCRAM given the password and the salt.
+// Returns the auth message, the server key and an error if anything goes wrong.
+func computeParams(passwd, salt []byte, cipher anubis.Cipher) ([]byte, []byte, error) {
+	saltedPasswd := argon2.Key(passwd, salt, 1, 2_000_000, 2, 32)
+
+	clientKey := hmac.New(sha256.New, saltedPasswd)
+	clientKey.Write([]byte("Client Key"))
+	servKey := hmac.New(sha256.New, saltedPasswd)
+	servKey.Write([]byte("Server Key"))
+
+	storedKey := sha256.Sum256(clientKey.Sum(nil))
+	clientSignature := hmac.New(sha256.New, storedKey[:])
+	clientSignature.Write(cipher.Nonce())
+
+	clientProof, err := seshat.XOR(clientSignature.Sum(nil), clientKey.Sum(nil))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
+	authMessage := seshat.MergeChunks(cipher.Nonce(), clientProof)
 
-	_, cnonce, err = extractDataNonce(authMessage, 64)
-	if err != nil {
-		return nil, err
-	}
-
-	if subtle.ConstantTimeCompare(cnonce, snonce) != 1 {
-		return nil, errors.New("the client and server nonces don't match")
-	}
-
-	return authMessage, nil
+	return authMessage, servKey.Sum(nil), nil
 }
 
 // Verifies the authenticity of the client.
-// Returns an error if the authentication failed for some reason (nil otherwise).
-func authClient(authMessage, storedKey []byte) error {
-	// authMessage is just nonce + clientProof
-	clientProof, nonce, err := extractDataNonce(authMessage, 64)
+// Returns the authMessage (for later use) and an error if the authentication failed for some reason (nil otherwise).
+func authClient(conn net.Conn, authMessage []byte, cipher anubis.Cipher) error {
+
+	// FIXME: m = nonce + [OK/FAIL]
+	m, _, err := cipher.DecRead(conn)
 	if err != nil {
 		return err
-	}
-
-	clientSignature := hmac.New(sha256.New, storedKey)
-	clientSignature.Write(nonce) // ! changed from the RFC !
-
-	clientKey, err := seshat.XOR(clientSignature.Sum(nil), clientProof)
-	if err != nil {
-		return err
-	}
-
-	expectedKey := sha256.Sum256(clientKey)
-	eq := subtle.ConstantTimeCompare(storedKey, expectedKey[:])
-	if eq != 1 {
-		return errors.New("stored key and the client key don't match")
+	} else if string(m) != "OK" {
+		return errors.New("client authentication failed")
 	}
 
 	return nil
@@ -130,29 +125,28 @@ func authClient(authMessage, storedKey []byte) error {
 // Sends the necesarry info for server authentication to the client.
 // Returns an error in case there was a problem with any of the steps or if server authentication failed client-side.
 func authServer(conn net.Conn, authMessage, servKey []byte, cipher anubis.Cipher) error {
-	serverSignature, err := getServerSig(authMessage, servKey)
+	expectedSignature, err := getServerSignature(authMessage, servKey)
 	if err != nil {
 		return err
 	}
 
-	_, snonce, err := extractDataNonce(authMessage, 64)
-	if err != nil {
-		return err
-	}
-	// so the client can authenticate the server
-	sdata := seshat.MergeChunks(snonce, serverSignature)
-	_, err = cipher.EncWrite(conn, sdata)
+	serverSignature, _, err := cipher.DecRead(conn)
 	if err != nil {
 		return err
 	}
 
-	// TODO: add some code with which the client can confirm server auth
+	if subtle.ConstantTimeCompare(expectedSignature, serverSignature) == 1 {
+		// send OK
+	} else {
+		// send FAIL
+		return errors.New("error authenticating the server (signatures don't match)")
+	}
 
 	return nil
 }
 
 // For convenience, extract the nonce and the data contained in a client message.
-// Returns the data, the nonce and an error (nil if all good), in the order specified.
+// Returns the data, the nonce and an error, in the order specified.
 func extractDataNonce(cdata []byte, nlen int) ([]byte, []byte, error) {
 	if !(nlen == 32 || nlen == 64) {
 		return nil, nil, errors.New("nonce must be either 32 or 64 bytes long")
@@ -165,9 +159,9 @@ func extractDataNonce(cdata []byte, nlen int) ([]byte, []byte, error) {
 	return rest, nonce, nil
 }
 
-// Computes server signature given client proof and server key.
-// Returns the server signature and an error (nil if everything is good).
-func getServerSig(authMessage, servKey []byte) ([]byte, error) {
+// Computes the server signature client-side.
+// Returns the server signature and an error.
+func getServerSignature(authMessage, servKey []byte) ([]byte, error) {
 	serverSignature := hmac.New(sha256.New, servKey)
 	n, err := serverSignature.Write(authMessage)
 	if err != nil {

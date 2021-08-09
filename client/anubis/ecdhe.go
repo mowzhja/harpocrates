@@ -7,25 +7,25 @@ import (
 	"errors"
 	"net"
 
+	"github.com/mowzhja/harpocrates/server/hermes"
 	"github.com/mowzhja/harpocrates/server/seshat"
 )
 
 // Responsible for the actual ECDHE.
+// Returns the shared secret (the key for symmetric crypto) and an error if anything goes wrong.
 func DoECDHE(conn net.Conn) ([]byte, error) {
 	E := elliptic.P521()
 
 	privKey, pubKey, err := generateKeys(E)
 	seshat.HandleErr(err)
 
-	clientPub := make([]byte, len(pubKey))
-
-	_, err = conn.Read(clientPub[:])
+	_, err = hermes.Write(conn, pubKey)
 	seshat.HandleErr(err)
 
-	sharedSecret, err := calculateSharedSecret(E, clientPub, privKey)
+	_, err, serverPub := hermes.Read(conn)
 	seshat.HandleErr(err)
 
-	_, err = conn.Write(pubKey[:])
+	sharedSecret, err := calculateSharedSecret(E, serverPub, privKey)
 	seshat.HandleErr(err)
 
 	sharedKey := sha512.Sum512_256(sharedSecret)
@@ -46,6 +46,7 @@ func generateKeys(E elliptic.Curve) ([]byte, []byte, error) {
 }
 
 // Calculates the shared secret given our private key and the public key of the other party.
+// Returns the shared secret and an error if anything went wrong.
 func calculateSharedSecret(E elliptic.Curve, pubKey, privKey []byte) ([]byte, error) {
 	if E != elliptic.P521() {
 		return nil, errors.New("only the NIST P-521 curve is accepted")
