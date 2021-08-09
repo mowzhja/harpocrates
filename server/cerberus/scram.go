@@ -53,9 +53,13 @@ func scram(conn net.Conn, cipher anubis.Cipher) error {
 		return err
 	}
 
-	// in my implementation AuthMessage == ClientProof (ignore SASL compatibility)
+	// in my implementation AuthMessage == nonce + ClientProof
 	err = authClient(authMessage, storedKey)
 	if err != nil {
+		// FIXME: fix this, keep the idea same
+		_, nonce := extractDataNonce(authMessage)
+		failMsg := seshat.Merge(nonce, []byte("failed"))
+		cipher.EncWrite(conn, failMsg)
 		return err
 	}
 
