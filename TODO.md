@@ -1,2 +1,5 @@
+- [ ] add error handler code to cerberus for both client and server that sends error messages in case of an error
+- [ ] watch for the cipher.Nonce() usage !!
+- [ ] build a further wrapper for writing and reading in cerberus so that it checks the nonce at every message
 - [ ] Keep the code as free of external dependencies as possible (ideally everything should be in the stdlib)
 - [ ] ? Add packet fragmentation => useless for now, but could be used to extend the functionality of harpocrates so that each fragment is sent over different networks, making it more resistent to interception and attack
