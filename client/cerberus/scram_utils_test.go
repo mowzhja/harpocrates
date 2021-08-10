@@ -6,6 +6,9 @@ import (
 	"encoding/hex"
 	"math/rand"
 	"testing"
+
+	"github.com/mowzhja/harpocrates/server/seshat"
+	"golang.org/x/crypto/argon2"
 )
 
 // Tests errorless function of the data extraction.
@@ -116,6 +119,120 @@ func Test_getServerSig(t *testing.T) {
 		if !hmac.Equal(check.Sum(nil), sig) {
 			t.Fatalf("the two macs are different: %s == %s",
 				hex.EncodeToString(check.Sum(nil)), hex.EncodeToString(sig))
+		}
+	}
+}
+
+// Tests the generation of SCRAM parameters.
+func Test_computeParameters(t *testing.T) {
+	passwd := []byte("secretpass")
+	salt := make([]byte, 32)
+	rand.Read(salt)
+
+	for i := 0; i < 5; i++ {
+		// made up parameters
+		nonce := make([]byte, 64) // client-server nonce
+		rand.Read(nonce)
+		saltedPassword := argon2.Key(passwd, salt, 1, 2_000_000, 2, 32)
+
+		clientKey := hmac.New(sha256.New, saltedPassword)
+		clientKey.Write([]byte("Client Key"))
+		storedKey := sha256.Sum256(clientKey.Sum(nil))
+		expectedKey := hmac.New(sha256.New, saltedPassword)
+		expectedKey.Write([]byte("Server Key"))
+
+		clientSig := hmac.New(sha256.New, storedKey[:])
+		clientSig.Write(nonce)
+
+		clientProof, err := seshat.XOR(clientSig.Sum(nil), clientKey.Sum(nil))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		expectedMsg := seshat.MergeChunks(nonce, clientProof)
+		gotMsg, gotKey, err := computeParams(passwd, salt, nonce)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if string(expectedMsg) != string(gotMsg) {
+			t.Fatalf("auth messages don't match: %s != %s",
+				hex.EncodeToString(gotMsg), hex.EncodeToString(expectedMsg))
+		}
+		if string(expectedKey.Sum(nil)) != string(gotKey) {
+			t.Fatalf("server keys don't match: %s != %s",
+				hex.EncodeToString(gotKey), hex.EncodeToString(expectedKey.Sum(nil)))
+		}
+	}
+}
+
+// Tests the parameter computation if the function receives an empty password/salt in input.
+func Test_computeParameters_emptyPasswdSalt(t *testing.T) {
+	nonce := make([]byte, 64)
+	rand.Read(nonce)
+	expectedError := "password, salt or both are empty"
+
+	authM, servK, err := computeParams([]byte(""), []byte("saltysalt"), nonce)
+	if err == nil {
+		t.Fatal("an error should've been raised")
+	}
+	if err.Error() != expectedError {
+		t.Fatalf("wrong error raised: expected %s, got %s",
+			expectedError, err.Error())
+	}
+	if !(authM == nil && servK == nil) {
+		t.Fatal("auth message and server key should be nil when an error occurs")
+	}
+
+	authM, servK, err = computeParams([]byte("passypass"), []byte(""), nonce)
+	if err == nil {
+		t.Fatal("an error should've been raised")
+	}
+	if err.Error() != expectedError {
+		t.Fatalf("wrong error raised: expected %s, got %s",
+			expectedError, err.Error())
+	}
+	if !(authM == nil && servK == nil) {
+		t.Fatal("auth message and server key should be nil when an error occurs")
+	}
+
+	authM, servK, err = computeParams([]byte(""), []byte(""), nonce)
+	if err == nil {
+		t.Fatal("an error should've been raised")
+	}
+	if err.Error() != expectedError {
+		t.Fatalf("wrong error raised: expected %s, got %s",
+			expectedError, err.Error())
+	}
+	if !(authM == nil && servK == nil) {
+		t.Fatal("auth message and server key should be nil when an error occurs")
+	}
+}
+
+// Tests the parameter computation if the function receives an invalid nonce (wrong length).
+func Test_computeParameters_invalidNonce(t *testing.T) {
+	expectedError := "the nonce must be 64 bytes long"
+
+	for i := 45; i < 70; i++ {
+		passwd := []byte("password")
+		salt := []byte("salt")
+		nonce := make([]byte, i)
+		rand.Read(nonce)
+
+		_, _, err := computeParams(passwd, salt, nonce)
+		if i == 64 {
+			// not supposed to raise any error
+			if err != nil {
+				t.Fatal(err)
+			}
+		} else {
+			if err == nil {
+				t.Fatalf("all nonces with lengths != [32, 64] must raise an error (got %d)", i)
+			}
+			if err.Error() != expectedError {
+				t.Fatalf("wrong error raised: expected %s, got %s",
+					expectedError, err.Error())
+			}
 		}
 	}
 }

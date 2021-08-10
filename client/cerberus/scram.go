@@ -21,12 +21,13 @@ func scram(conn net.Conn, cipher anubis.Cipher, uname, passwd []byte) error {
 		return err
 	}
 
+	// from this point forth the nonce is 64 bytes long (client + server)
 	err = cipher.UpdateNonce(snonce)
 	if err != nil {
 		return err
 	}
 
-	authMessage, servKey, err := computeParams(passwd, salt, cipher)
+	authMessage, servKey, err := computeParams(passwd, salt, cipher.Nonce())
 	if err != nil {
 		return err
 	}

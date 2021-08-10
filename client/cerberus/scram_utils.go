@@ -14,7 +14,14 @@ import (
 
 // Computes the parameters used for SCRAM given the password and the salt.
 // Returns the auth message, the server key and an error if anything goes wrong.
-func computeParams(passwd, salt []byte, cipher anubis.Cipher) ([]byte, []byte, error) {
+func computeParams(passwd, salt, nonce []byte) ([]byte, []byte, error) {
+	if len(passwd) == 0 || len(salt) == 0 {
+		return nil, nil, errors.New("password, salt or both are empty")
+	}
+	if len(nonce) != 64 {
+		return nil, nil, errors.New("the nonce must be 64 bytes long")
+	}
+
 	saltedPasswd := argon2.Key(passwd, salt, 1, 2_000_000, 2, 32)
 
 	clientKey := hmac.New(sha256.New, saltedPasswd)
@@ -24,13 +31,13 @@ func computeParams(passwd, salt []byte, cipher anubis.Cipher) ([]byte, []byte, e
 
 	storedKey := sha256.Sum256(clientKey.Sum(nil))
 	clientSignature := hmac.New(sha256.New, storedKey[:])
-	clientSignature.Write(cipher.Nonce())
+	clientSignature.Write(nonce)
 
 	clientProof, err := seshat.XOR(clientSignature.Sum(nil), clientKey.Sum(nil))
 	if err != nil {
 		return nil, nil, err
 	}
-	authMessage := seshat.MergeChunks(cipher.Nonce(), clientProof)
+	authMessage := seshat.MergeChunks(nonce, clientProof)
 
 	return authMessage, servKey.Sum(nil), nil
 }
