@@ -4,7 +4,7 @@ package cerberus
 import (
 	"net"
 
-	"github.com/mowzhja/harpocrates/server/anubis"
+	"github.com/mowzhja/harpocrates/client/anubis"
 )
 
 // Implements the mutual challenge-response auth between server and clients.

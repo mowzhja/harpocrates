@@ -7,8 +7,8 @@ import (
 	"errors"
 	"net"
 
-	"github.com/mowzhja/harpocrates/server/anubis"
-	"github.com/mowzhja/harpocrates/server/seshat"
+	"github.com/mowzhja/harpocrates/client/anubis"
+	"github.com/mowzhja/harpocrates/client/seshat"
 	"golang.org/x/crypto/argon2"
 )
 

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"net"
 
-	"github.com/mowzhja/harpocrates/server/anubis"
+	"github.com/mowzhja/harpocrates/client/anubis"
 )
 
 // Authenticates client and server to each other.

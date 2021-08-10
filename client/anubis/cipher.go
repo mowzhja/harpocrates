@@ -7,7 +7,7 @@ import (
 	"math/rand"
 	"net"
 
-	"github.com/mowzhja/harpocrates/server/hermes"
+	"github.com/mowzhja/harpocrates/client/hermes"
 )
 
 type Cipher struct {

@@ -7,8 +7,8 @@ import (
 	"errors"
 	"net"
 
-	"github.com/mowzhja/harpocrates/server/hermes"
-	"github.com/mowzhja/harpocrates/server/seshat"
+	"github.com/mowzhja/harpocrates/client/hermes"
+	"github.com/mowzhja/harpocrates/client/seshat"
 )
 
 // Responsible for the actual ECDHE.
