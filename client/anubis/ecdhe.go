@@ -22,7 +22,7 @@ func DoECDHE(conn net.Conn) ([]byte, error) {
 	_, err = hermes.Write(conn, pubKey)
 	seshat.HandleErr(err)
 
-	_, err, serverPub := hermes.Read(conn)
+	serverPub, _, err := hermes.Read(conn)
 	seshat.HandleErr(err)
 
 	sharedSecret, err := calculateSharedSecret(E, serverPub, privKey)

@@ -1,3 +1,3 @@
-- [ ] wrap the scram parameter creation in a function
+- [x] wrap the scram parameter creation in a function
 - [ ] make sure all the tests pass after all the changes
 - [ ] test client-server interaction
