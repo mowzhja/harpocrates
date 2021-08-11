@@ -1,10 +1,8 @@
 package anubis
 
 import (
-	"crypto/aes"
 	"crypto/cipher"
 	"errors"
-	"math/rand"
 	"net"
 
 	"github.com/mowzhja/harpocrates/server/hermes"
@@ -17,36 +15,6 @@ type Cipher struct {
 }
 
 const BYTE_SEC = 32 // 32 * 8 == 256
-
-// Creates a new Cipher given the key.
-// Returns the Cipher and nil in case of a success, an empty Cipher and an error otherwise.
-func NewCipher(k []byte) (Cipher, error) {
-	if len(k) != BYTE_SEC {
-		return Cipher{}, errors.New("the key must be 32 bytes long")
-	}
-
-	n := make([]byte, BYTE_SEC)
-	_, err := rand.Read(n)
-	if err != nil {
-		return Cipher{}, err
-	}
-
-	block, err := aes.NewCipher(k)
-	if err != nil {
-		return Cipher{}, err
-	}
-
-	gcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return Cipher{}, err
-	}
-
-	return Cipher{
-		key:   k,
-		nonce: n,
-		aead:  gcm,
-	}, nil
-}
 
 // Returns the nonce of a Cipher.
 func (c *Cipher) Nonce() []byte {

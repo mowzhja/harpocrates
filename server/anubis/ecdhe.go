@@ -3,34 +3,8 @@ package anubis
 import (
 	"crypto/elliptic"
 	"crypto/rand"
-	"crypto/sha512"
 	"errors"
-	"net"
-
-	"github.com/mowzhja/harpocrates/server/hermes"
-	"github.com/mowzhja/harpocrates/server/seshat"
 )
-
-// Responsible for the actual ECDHE.
-func DoECDHE(conn net.Conn) ([]byte, error) {
-	E := elliptic.P521()
-
-	privKey, pubKey, err := generateKeys(E)
-	seshat.HandleErr(err)
-
-	clientPub, _, err := hermes.Read(conn)
-	seshat.HandleErr(err)
-
-	sharedSecret, err := calculateSharedSecret(E, clientPub, privKey)
-	seshat.HandleErr(err)
-
-	_, err = hermes.Write(conn, pubKey)
-	seshat.HandleErr(err)
-
-	sharedKey := sha512.Sum512_256(sharedSecret)
-
-	return sharedKey[:], nil
-}
 
 // Generates the private/public key pair for ECDH.
 func generateKeys(E elliptic.Curve) ([]byte, []byte, error) {
