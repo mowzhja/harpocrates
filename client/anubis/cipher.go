@@ -49,13 +49,18 @@ func (c *Cipher) Nonce() []byte {
 	return c.nonce
 }
 
-// Returns the key of a Cipher.
-func (c *Cipher) Key() []byte {
-	return c.key
+// Updates the nonce of a given cipher.
+func (c *Cipher) UpdateNonce(newNonce []byte) error {
+	c.nonce = newNonce
+	if string(c.nonce) != string(newNonce) {
+		return errors.New("failed to update the nonce")
+	}
+
+	return nil
 }
 
+
 // Wrapper around conn.Write() to make sure we send encrypted data over the channel.
-// IMPORTANT: this method assumes that the plaintext is of sufficient size to be transmitted all at once, so fragmentation must happen elsewhere!
 func (c *Cipher) EncWrite(conn net.Conn, plaintext []byte) (int, error) {
 	aeadtext := c.encrypt(plaintext)
 
@@ -63,7 +68,6 @@ func (c *Cipher) EncWrite(conn net.Conn, plaintext []byte) (int, error) {
 }
 
 // Wrapper around conn.Read() to make sure we read decrypted data.
-// IMPORTANT: this method assumes that the ciphertext is of sufficient size to be read all at once, so fragmentation must happen elsewhere!
 func (c *Cipher) DecRead(conn net.Conn) ([]byte, int, error) {
 	m, nr, err := hermes.Read(conn)
 	if err != nil {
@@ -74,15 +78,6 @@ func (c *Cipher) DecRead(conn net.Conn) ([]byte, int, error) {
 	return plaintext, nr, err
 }
 
-// Updates the nonce of a given cipher.
-func (c *Cipher) UpdateNonce(newNonce []byte) error {
-	c.nonce = newNonce
-	if string(c.nonce) != string(newNonce) {
-		return errors.New("failed to update the nonce")
-	}
-
-	return nil
-}
 
 // Wrapper around encryption.
 func (c *Cipher) encrypt(plaintext []byte) []byte {
