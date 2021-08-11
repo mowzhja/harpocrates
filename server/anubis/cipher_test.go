@@ -46,6 +46,48 @@ func Test_NewCipher(t *testing.T) {
 	}
 }
 
+// Tests getting the nonce with the Nonce() method.
+func Test_Nonce(t *testing.T) {
+	for i := 0; i < 50; i++ {
+		key := make([]byte, 32)
+		rand.Read(key)
+
+		cipher, err := NewCipher(key)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if string(cipher.nonce) != string(cipher.Nonce()) {
+			t.Fatalf("the two nonces should be equal: expected %s, got %s",
+				hex.EncodeToString(cipher.nonce), hex.EncodeToString(cipher.Nonce()))
+		}
+	}
+}
+
+// Tests the updating of the nonce through the UpdateNonce() method.
+func Test_UpdateNonce(t *testing.T) {
+	key := make([]byte, 32)
+	rand.Read(key)
+
+	cipher, err := NewCipher(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for i := 20; i < 70; i++ {
+		nonce := make([]byte, i)
+		err := cipher.UpdateNonce(nonce)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if string(nonce) != string(cipher.nonce) {
+			t.Fatalf("the two nonces should be equal: expected %s, got %s",
+				hex.EncodeToString(nonce), hex.EncodeToString(cipher.nonce))
+		}
+	}
+}
+
 // Tests encryption and decryption.
 func Test_encryptDecrypt(t *testing.T) {
 	for i := 0; i < 100; i++ {

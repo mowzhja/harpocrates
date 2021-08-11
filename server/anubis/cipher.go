@@ -21,6 +21,10 @@ const BYTE_SEC = 32 // 32 * 8 == 256
 // Creates a new Cipher given the key.
 // Returns the Cipher and nil in case of a success, an empty Cipher and an error otherwise.
 func NewCipher(k []byte) (Cipher, error) {
+	if len(k) != BYTE_SEC {
+		return Cipher{}, errors.New("the key must be 32 bytes long")
+	}
+
 	n := make([]byte, BYTE_SEC)
 	_, err := rand.Read(n)
 	if err != nil {
@@ -57,11 +61,6 @@ func (c *Cipher) UpdateNonce(newNonce []byte) error {
 	}
 
 	return nil
-}
-
-// Returns the key of a Cipher.
-func (c *Cipher) Key() []byte {
-	return c.key
 }
 
 // Wrapper around hermes.Write() to make sure we send encrypted data over the channel.
