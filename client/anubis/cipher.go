@@ -1,10 +1,8 @@
 package anubis
 
 import (
-	"crypto/aes"
 	"crypto/cipher"
 	"errors"
-	"math/rand"
 	"net"
 
 	"github.com/mowzhja/harpocrates/client/hermes"
@@ -17,32 +15,6 @@ type Cipher struct {
 }
 
 const BYTE_SEC = 32 // 32 * 8 == 256
-
-// Creates a new Cipher given the key.
-// Returns the Cipher and nil in case of a success, an empty Cipher and an error otherwise.
-func NewCipher(k []byte) (Cipher, error) {
-	n := make([]byte, BYTE_SEC)
-	_, err := rand.Read(n)
-	if err != nil {
-		return Cipher{}, err
-	}
-
-	block, err := aes.NewCipher(k)
-	if err != nil {
-		return Cipher{}, err
-	}
-
-	gcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return Cipher{}, err
-	}
-
-	return Cipher{
-		key:   k,
-		nonce: n,
-		aead:  gcm,
-	}, nil
-}
 
 // Returns the nonce of a Cipher.
 func (c *Cipher) Nonce() []byte {
@@ -58,7 +30,6 @@ func (c *Cipher) UpdateNonce(newNonce []byte) error {
 
 	return nil
 }
-
 
 // Wrapper around conn.Write() to make sure we send encrypted data over the channel.
 func (c *Cipher) EncWrite(conn net.Conn, plaintext []byte) (int, error) {
@@ -77,7 +48,6 @@ func (c *Cipher) DecRead(conn net.Conn) ([]byte, int, error) {
 
 	return plaintext, nr, err
 }
-
 
 // Wrapper around encryption.
 func (c *Cipher) encrypt(plaintext []byte) []byte {
