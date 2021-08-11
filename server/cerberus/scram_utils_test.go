@@ -105,7 +105,7 @@ func Test_getServerSig(t *testing.T) {
 		serverKey := make([]byte, 32)
 		rand.Read(serverKey)
 
-		sig, err := getServerSig(authMessage, serverKey)
+		sig, err := getServerSignature(authMessage, serverKey)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -146,8 +146,7 @@ func Test_authClient(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		authMessage := seshat.MergeChunks(nonce, clientProof)
-		err = authClient(authMessage, storedKey[:])
+		err = authClient(clientProof, nonce, storedKey[:])
 		if err != nil {
 			t.Fatal(err)
 		}

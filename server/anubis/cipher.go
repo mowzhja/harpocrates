@@ -3,6 +3,7 @@ package anubis
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"errors"
 	"math/rand"
 	"net"
 
@@ -41,6 +42,26 @@ func NewCipher(k []byte) (Cipher, error) {
 		nonce: n,
 		aead:  gcm,
 	}, nil
+}
+
+// Returns the nonce of a Cipher.
+func (c *Cipher) Nonce() []byte {
+	return c.nonce
+}
+
+// Updates the nonce of a given cipher.
+func (c *Cipher) UpdateNonce(newNonce []byte) error {
+	c.nonce = newNonce
+	if string(c.nonce) != string(newNonce) {
+		return errors.New("failed to update the nonce")
+	}
+
+	return nil
+}
+
+// Returns the key of a Cipher.
+func (c *Cipher) Key() []byte {
+	return c.key
 }
 
 // Wrapper around hermes.Write() to make sure we send encrypted data over the channel.
