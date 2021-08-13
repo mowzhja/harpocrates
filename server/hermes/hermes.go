@@ -5,13 +5,21 @@ import (
 	"bufio"
 	"encoding/hex"
 	"net"
+	"strings"
 )
 
 // Wrapper to write accross a TCP connection.
 // To mantain consistency with the net API, it returns the number of bytes written and an error.
 func Write(conn net.Conn, msg []byte) (int, error) {
-	msg = append(msg, '\n')
-	n, err := bufio.NewWriter(conn).Write(msg)
+	writer := bufio.NewWriter(conn)
+	hexMsg := hex.EncodeToString(msg) + string('\n')
+
+	n, err := writer.WriteString(hexMsg)
+	if err != nil {
+		return 0, err
+	}
+
+	err = writer.Flush()
 	if err != nil {
 		return 0, err
 	}
@@ -22,16 +30,15 @@ func Write(conn net.Conn, msg []byte) (int, error) {
 // Wrapper to read data accross a TCP connection.
 // To mantain the API consistent with the net API, on top of returning the message read from the connection it returns the number of bytes read and an error.
 func Read(conn net.Conn) ([]byte, int, error) {
-	hexMsg, err := bufio.NewReader(conn).ReadBytes('\n')
+	hexMsg, err := bufio.NewReader(conn).ReadString('\n')
 	if err != nil {
 		return nil, 0, err
 	}
 
-	var msg []byte
-	n, err := hex.Decode(msg, hexMsg)
+	msg, err := hex.DecodeString(strings.TrimSuffix(hexMsg, "\n"))
 	if err != nil {
 		return nil, 0, err
 	}
 
-	return msg, n, nil
+	return msg, len(msg), err
 }

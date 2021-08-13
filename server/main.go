@@ -20,10 +20,7 @@ func main() {
 	sb.WriteString(":")
 	sb.WriteString(*port)
 
-	addr, err := net.ResolveTCPAddr("tcp", sb.String())
-	seshat.HandleErr(err)
-
-	listener, err := net.ListenTCP("tcp", addr)
+	listener, err := net.Listen("tcp", sb.String())
 	seshat.HandleErr(err)
 
 	for {
@@ -36,13 +33,12 @@ func main() {
 }
 
 func handleClient(conn net.Conn) error {
-	defer conn.Close()
-
 	sharedKey, err := anubis.DoECDHE(conn)
 	seshat.HandleErr(err)
 
 	err = cerberus.DoMutualAuth(conn, sharedKey)
 	seshat.HandleErr(err)
 
+	conn.Close()
 	return nil
 }
