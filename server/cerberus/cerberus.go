@@ -12,12 +12,12 @@ import (
 func DoMutualAuth(conn net.Conn, sharedKey []byte) error {
 	cipher, err := anubis.NewCipher(sharedKey)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	err = scram(conn, cipher)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	return nil

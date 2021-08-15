@@ -4,6 +4,7 @@ package coeus
 
 import (
 	"encoding/csv"
+	"encoding/hex"
 	"io"
 	"os"
 )
@@ -30,9 +31,10 @@ func GetCorrespondingInfo(uname string) ([]byte, []byte, []byte, error) {
 
 		if record[0] == uname {
 			// got a match
-			salt = []byte(record[1])
-			storedKey = []byte(record[2])
-			servKey = []byte(record[3])
+			// no need to check errors (the file has been generated automatically, i know for a fact the hex encoding is correct)
+			salt, _ = hex.DecodeString(record[1])
+			storedKey, _ = hex.DecodeString(record[2])
+			servKey, _ = hex.DecodeString(record[3])
 		}
 	}
 
