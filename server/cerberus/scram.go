@@ -13,6 +13,22 @@ import (
 	"github.com/mowzhja/harpocrates/server/seshat"
 )
 
+// Implements the mutual challenge-response auth between server and clients.
+// Assumes the sharedKey is secret (only known to server and client)!
+func doMutualAuth(conn net.Conn, sharedKey []byte) (anubis.Cipher, error) {
+	cipher, err := anubis.NewCipher(sharedKey)
+	if err != nil {
+		return anubis.Cipher{}, err
+	}
+
+	err = scram(conn, cipher)
+	if err != nil {
+		return anubis.Cipher{}, err
+	}
+
+	return cipher, nil
+}
+
 // Authenticates client and server to each other.
 // Implements SCRAM authentication, as specified in RFC5802. Returns error if the authentication failed.
 func scram(conn net.Conn, cipher anubis.Cipher) error {

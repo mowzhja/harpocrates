@@ -11,34 +11,33 @@ import (
 )
 
 func main() {
-	var sb strings.Builder
-
-	ipAddr := flag.String("addr", "127.0.0.1", "ip address of the server")
+	ip := flag.String("ip", "127.0.0.1", "ip address of the server")
 	port := flag.String("port", "9001", "server port")
 
-	sb.WriteString(*ipAddr)
-	sb.WriteString(":")
-	sb.WriteString(*port)
+	var address strings.Builder
+	address.WriteString(*ip)
+	address.WriteString(":")
+	address.WriteString(*port)
 
-	listener, err := net.Listen("tcp", sb.String())
+	listener, err := net.Listen("tcp", address.String())
 	seshat.HandleErr(err)
 
 	for {
 		conn, err := listener.Accept()
 		seshat.HandleErr(err)
 
-		// goroutine
 		go handleClient(conn)
 	}
 }
 
 func handleClient(conn net.Conn) error {
+	defer conn.Close()
+
 	sharedKey, err := anubis.DoECDHE(conn)
 	seshat.HandleErr(err)
 
-	err = cerberus.DoMutualAuth(conn, sharedKey)
+	err = cerberus.ConnectPeers(conn, sharedKey)
 	seshat.HandleErr(err)
 
-	conn.Close()
 	return nil
 }
