@@ -1,3 +1,5 @@
 - [x] wrap the scram parameter creation in a function
 - [x] make sure all the tests pass after all the changes
-- [ ] test client-server interaction
+- [x] test client-server interaction
+- [ ] Fix the code to match the server (no warnings)
+- [ ] Test connections

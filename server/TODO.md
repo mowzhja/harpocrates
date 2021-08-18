@@ -5,7 +5,8 @@
 - [x] Write unit tests for utils
 - [x] Deal with connection buffers and shit (look at bookmarks)
 - [x] Create the CSV(or other format) file containing user data (cause can't be bothered with DBs)
-- [ ] Document functions better
+- [x] Document functions better
 - [x] Test key negotiation with client
 - [x] Review project structure
+- [ ] Test all the connections
 - [ ] INTEGRATION TESTS!
