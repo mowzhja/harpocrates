@@ -3,9 +3,6 @@ package anubis
 import (
 	"crypto/cipher"
 	"errors"
-	"net"
-
-	"github.com/mowzhja/harpocrates/server/hermes"
 )
 
 type Cipher struct {
@@ -31,31 +28,14 @@ func (c *Cipher) UpdateNonce(newNonce []byte) error {
 	return nil
 }
 
-// Wrapper around hermes.Write() to make sure we send encrypted data over the channel.
-func (c *Cipher) EncWrite(conn net.Conn, plaintext []byte) (int, error) {
-	aeadtext := c.encrypt(plaintext)
-	return hermes.Write(conn, aeadtext)
-}
-
-// Wrapper around hermes.Read() to make sure we read encrypted data.
-func (c *Cipher) DecRead(conn net.Conn) ([]byte, int, error) {
-	ciphertext, nr, err := hermes.Read(conn)
-	if err != nil {
-		return nil, 0, err
-	}
-	plaintext, err := c.decrypt(ciphertext)
-
-	return plaintext, nr, err
-}
-
 // Wrapper around encryption.
-func (c *Cipher) encrypt(plaintext []byte) []byte {
+func (c *Cipher) Encrypt(plaintext []byte) []byte {
 	nonce := c.nonce[:c.aead.NonceSize()]
 	return c.aead.Seal(nil, nonce, plaintext, nil)
 }
 
 // Wrapper around decryption.
-func (c *Cipher) decrypt(ciphertext []byte) ([]byte, error) {
+func (c *Cipher) Decrypt(ciphertext []byte) ([]byte, error) {
 	nonce := c.nonce[:c.aead.NonceSize()]
 	return c.aead.Open(nil, nonce, ciphertext, nil)
 }

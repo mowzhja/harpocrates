@@ -2,43 +2,54 @@
 package hermes
 
 import (
-	"bufio"
-	"encoding/hex"
+	"crypto/elliptic"
+	"crypto/sha512"
 	"net"
-	"strings"
+
+	"github.com/mowzhja/harpocrates/server/anubis"
+	"github.com/mowzhja/harpocrates/server/coeus"
+	"github.com/mowzhja/harpocrates/server/seshat"
 )
 
-// Wrapper to write accross a TCP connection.
-// To mantain consistency with the net API, it returns the number of bytes written and an error.
-func Write(conn net.Conn, msg []byte) (int, error) {
-	writer := bufio.NewWriter(conn)
-	hexMsg := hex.EncodeToString(msg) + string('\n')
-
-	n, err := writer.WriteString(hexMsg)
+// Connects the two peers with one another, thus ending the server's function.
+// Returns an error if anything went wrong.
+func ConnectPeers(conn net.Conn, cipher anubis.Cipher) error {
+	peer_uname, _, err := FullRead(conn, cipher)
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	err = writer.Flush()
+	// check for existence
+	_, peerStoredKey, _, err := coeus.GetCorrespondingInfo(string(peer_uname))
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	return n, nil
+	_, err = FullWrite(conn, peerStoredKey, cipher)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-// Wrapper to read data accross a TCP connection.
-// To mantain the API consistent with the net API, on top of returning the message read from the connection it returns the number of bytes read and an error.
-func Read(conn net.Conn) ([]byte, int, error) {
-	hexMsg, err := bufio.NewReader(conn).ReadString('\n')
-	if err != nil {
-		return nil, 0, err
-	}
+// Responsible for ECDHE.
+func DoECDHE(conn net.Conn) ([]byte, error) {
+	E := elliptic.P521()
 
-	msg, err := hex.DecodeString(strings.TrimSuffix(hexMsg, "\n"))
-	if err != nil {
-		return nil, 0, err
-	}
+	privKey, pubKey, err := generateKeys(E)
+	seshat.HandleErr(err)
 
-	return msg, len(msg), err
+	clientPub, _, err := Read(conn)
+	seshat.HandleErr(err)
+
+	sharedSecret, err := calculateSharedSecret(E, clientPub, privKey)
+	seshat.HandleErr(err)
+
+	_, err = Write(conn, pubKey)
+	seshat.HandleErr(err)
+
+	sharedKey := sha512.Sum512_256(sharedSecret)
+
+	return sharedKey[:], nil
 }

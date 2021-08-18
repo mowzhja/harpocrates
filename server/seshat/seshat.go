@@ -3,6 +3,8 @@
 package seshat
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"os"
@@ -42,4 +44,32 @@ func MergeChunks(chunks ...[]byte) []byte {
 	}
 
 	return slab
+}
+
+// For convenience, extract the nonce and the data contained in a client message.
+// Returns the data, the nonce and an error (nil if all good), in the order specified.
+func ExtractDataNonce(cdata []byte, nlen int) ([]byte, []byte, error) {
+	if !(nlen == 32 || nlen == 64) {
+		return nil, nil, errors.New("nonce must be either 32 or 64 bytes long")
+	} else if len(cdata) < nlen {
+		return nil, nil, errors.New("data is too short")
+	}
+	nonce := cdata[:nlen]
+	rest := cdata[nlen:]
+
+	return rest, nonce, nil
+}
+
+// Computes server signature given client proof and server key.
+// Returns the server signature and an error (nil if everything is good).
+func GetServerSignature(authMessage, servKey []byte) ([]byte, error) {
+	serverSignature := hmac.New(sha256.New, servKey)
+	n, err := serverSignature.Write(authMessage)
+	if err != nil {
+		return nil, err
+	} else if n < 32 {
+		return nil, errors.New("the signature should be 32 bytes (256 bits) long")
+	}
+
+	return serverSignature.Sum(nil), nil
 }

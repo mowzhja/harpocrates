@@ -10,34 +10,19 @@ import (
 
 	"github.com/mowzhja/harpocrates/server/anubis"
 	"github.com/mowzhja/harpocrates/server/coeus"
+	"github.com/mowzhja/harpocrates/server/hermes"
 	"github.com/mowzhja/harpocrates/server/seshat"
 )
-
-// Implements the mutual challenge-response auth between server and clients.
-// Assumes the sharedKey is secret (only known to server and client)!
-func doMutualAuth(conn net.Conn, sharedKey []byte) (anubis.Cipher, error) {
-	cipher, err := anubis.NewCipher(sharedKey)
-	if err != nil {
-		return anubis.Cipher{}, err
-	}
-
-	err = scram(conn, cipher)
-	if err != nil {
-		return anubis.Cipher{}, err
-	}
-
-	return cipher, nil
-}
 
 // Authenticates client and server to each other.
 // Implements SCRAM authentication, as specified in RFC5802. Returns error if the authentication failed.
 func scram(conn net.Conn, cipher anubis.Cipher) error {
-	cdata, _, err := cipher.DecRead(conn) // read client nonce and username
+	cdata, _, err := hermes.DecRead(conn, cipher) // read client nonce and username
 	if err != nil {
 		return err
 	}
 
-	uname, cnonce, err := extractDataNonce(cdata, 32)
+	uname, cnonce, err := seshat.ExtractDataNonce(cdata, 32)
 	if err != nil {
 		return err
 	}
@@ -60,7 +45,7 @@ func scram(conn net.Conn, cipher anubis.Cipher) error {
 
 	err = authClient(clientProof, cipher.Nonce(), storedKey)
 	if err != nil {
-		_, err = fullWrite(conn, []byte("SERVER_FAIL"), cipher)
+		_, err = hermes.FullWrite(conn, []byte("SERVER_FAIL"), cipher)
 		if err != nil {
 			return err
 		}
@@ -87,17 +72,17 @@ func doChallenge(conn net.Conn, cnonce, salt []byte, cipher anubis.Cipher) ([]by
 	snonce = seshat.MergeChunks(cnonce, snonce) // nonce used for the rest of the authentication procedure (by both client and server)
 
 	sdata := seshat.MergeChunks(cnonce, salt)
-	_, err = cipher.EncWrite(conn, sdata)
+	_, err = hermes.EncWrite(conn, cipher, sdata)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	authMessage, _, err := cipher.DecRead(conn)
+	authMessage, _, err := hermes.DecRead(conn, cipher)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	clientProof, cnonce, err := extractDataNonce(authMessage, 64)
+	clientProof, cnonce, err := seshat.ExtractDataNonce(authMessage, 64)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -132,17 +117,17 @@ func authClient(clientProof, nonce, storedKey []byte) error {
 // Returns an error in case there was a problem with any of the steps or if server authentication failed client-side.
 func authServer(conn net.Conn, clientProof, servKey []byte, cipher anubis.Cipher) error {
 	authMessage := seshat.MergeChunks(cipher.Nonce(), clientProof)
-	serverSignature, err := getServerSignature(authMessage, servKey)
+	serverSignature, err := seshat.GetServerSignature(authMessage, servKey)
 	if err != nil {
 		return err
 	}
 
-	_, err = fullWrite(conn, serverSignature, cipher)
+	_, err = hermes.FullWrite(conn, serverSignature, cipher)
 	if err != nil {
 		return err
 	}
 
-	resp, _, err := checkRead(conn, cipher)
+	resp, _, err := hermes.FullRead(conn, cipher)
 	if err != nil {
 		return err
 	}

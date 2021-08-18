@@ -100,7 +100,7 @@ func Test_encryptDecrypt(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if p, err := c.decrypt(c.encrypt(plaintext)); err == nil {
+		if p, err := c.Decrypt(c.Encrypt(plaintext)); err == nil {
 			if string(p) != string(plaintext) {
 				t.Fatalf("the encryption and decryption are incorrect: expected %s, got %s", string(plaintext), string(p))
 			}

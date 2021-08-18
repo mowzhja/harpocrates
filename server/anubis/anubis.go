@@ -5,14 +5,8 @@ package anubis
 import (
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/elliptic"
-	"crypto/sha512"
 	"errors"
 	"math/rand"
-	"net"
-
-	"github.com/mowzhja/harpocrates/server/hermes"
-	"github.com/mowzhja/harpocrates/server/seshat"
 )
 
 // Creates a new Cipher given the key.
@@ -43,25 +37,4 @@ func NewCipher(k []byte) (Cipher, error) {
 		nonce: n,
 		aead:  gcm,
 	}, nil
-}
-
-// Responsible for ECDHE.
-func DoECDHE(conn net.Conn) ([]byte, error) {
-	E := elliptic.P521()
-
-	privKey, pubKey, err := generateKeys(E)
-	seshat.HandleErr(err)
-
-	clientPub, _, err := hermes.Read(conn)
-	seshat.HandleErr(err)
-
-	sharedSecret, err := calculateSharedSecret(E, clientPub, privKey)
-	seshat.HandleErr(err)
-
-	_, err = hermes.Write(conn, pubKey)
-	seshat.HandleErr(err)
-
-	sharedKey := sha512.Sum512_256(sharedSecret)
-
-	return sharedKey[:], nil
 }
