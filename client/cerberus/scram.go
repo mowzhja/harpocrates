@@ -10,39 +10,39 @@ import (
 
 // Authenticates client and server to each other.
 // Implements SCRAM authentication, as specified in RFC5802. Returns error if the authentication failed.
-func scram(conn net.Conn, cipher anubis.Cipher, uname, passwd []byte) error {
+func scram(conn net.Conn, cipher anubis.Cipher, uname, passwd []byte) ([]byte, error) {
 	_, err := fullWrite(conn, uname, cipher)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	salt, snonce, err := doChallenge(conn, cipher)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// from this point forth the nonce is 64 bytes long (client + server)
 	err = cipher.UpdateNonce(snonce)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	authMessage, servKey, err := computeParams(passwd, salt, cipher.Nonce())
+	authMessage, servKey, clientKey, err := computeParams(passwd, salt, cipher.Nonce())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = authClient(conn, authMessage, cipher)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = authServer(conn, authMessage, servKey, cipher)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return clientKey, nil
 }
 
 // Does the challenge part of the challenge-response authentication.

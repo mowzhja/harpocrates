@@ -9,16 +9,26 @@ import (
 
 // Implements the mutual challenge-response auth between server and clients.
 // Assumes the sharedKey is secret (only known to server and client)!
-func DoMutualAuth(conn net.Conn, sharedKey, uname, passwd []byte) error {
+func GetPeerData(conn net.Conn, sharedKey, uname, passwd []byte) ([]byte, []byte, error) {
 	cipher, err := anubis.NewCipher(sharedKey)
 	if err != nil {
-		return nil
+		return nil, nil, err
 	}
 
-	err = scram(conn, cipher, uname, passwd)
+	ownClientKey, err := scram(conn, cipher, uname, passwd)
 	if err != nil {
-		return nil
+		return nil, nil, err
 	}
 
-	return nil
+	_, err = fullWrite(conn, []byte("bob"), cipher)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	peerStoredKey, _, err := checkRead(conn, cipher)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return ownClientKey, peerStoredKey, nil
 }

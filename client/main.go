@@ -15,9 +15,10 @@ func main() {
 	sharedSecret, err := anubis.DoECDHE(conn)
 	seshat.HandleErr(err)
 
+	// TODO: get these as input/CLI arg
 	user := []byte("alice")
 	pass := []byte("alicespass")
-	err = cerberus.DoMutualAuth(conn, sharedSecret, user, pass)
+	err = cerberus.GetPeerData(conn, sharedSecret, user, pass)
 	seshat.HandleErr(err)
 
 	conn.Close()

@@ -14,12 +14,12 @@ import (
 
 // Computes the parameters used for SCRAM given the password and the salt.
 // Returns the auth message, the server key and an error if anything goes wrong.
-func computeParams(passwd, salt, nonce []byte) ([]byte, []byte, error) {
+func computeParams(passwd, salt, nonce []byte) ([]byte, []byte, []byte, error) {
 	if len(passwd) == 0 || len(salt) == 0 {
-		return nil, nil, errors.New("password, salt or both are empty")
+		return nil, nil, nil, errors.New("password, salt or both are empty")
 	}
 	if len(nonce) != 64 {
-		return nil, nil, errors.New("the nonce must be 64 bytes long")
+		return nil, nil, nil, errors.New("the nonce must be 64 bytes long")
 	}
 
 	saltedPasswd := argon2.Key(passwd, salt, 1, 2_000_000, 2, 32)
@@ -35,11 +35,11 @@ func computeParams(passwd, salt, nonce []byte) ([]byte, []byte, error) {
 
 	clientProof, err := seshat.XOR(clientSignature.Sum(nil), clientKey.Sum(nil))
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	authMessage := seshat.MergeChunks(nonce, clientProof)
 
-	return authMessage, servKey.Sum(nil), nil
+	return authMessage, servKey.Sum(nil), clientKey.Sum(nil), nil
 }
 
 // Wrapper around DecRead() to check the nonce as well as reading the message every time we read from remote.
