@@ -5,6 +5,7 @@ import (
 	"net"
 
 	"github.com/mowzhja/harpocrates/client/anubis"
+	"github.com/mowzhja/harpocrates/client/hermes"
 )
 
 // Implements the mutual challenge-response auth between server and clients.
@@ -20,12 +21,12 @@ func GetPeerData(conn net.Conn, sharedKey, uname, passwd []byte) ([]byte, []byte
 		return nil, nil, err
 	}
 
-	_, err = fullWrite(conn, []byte("bob"), cipher)
+	_, err = hermes.FullWrite(conn, []byte("bob"), cipher)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	peerStoredKey, _, err := checkRead(conn, cipher)
+	peerStoredKey, _, err := hermes.FullRead(conn, cipher)
 	if err != nil {
 		return nil, nil, err
 	}

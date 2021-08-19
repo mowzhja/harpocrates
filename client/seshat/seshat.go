@@ -43,3 +43,17 @@ func MergeChunks(chunks ...[]byte) []byte {
 
 	return slab
 }
+
+// For convenience, extract the nonce and the data contained in a client message.
+// Returns the data, the nonce and an error, in the order specified.
+func ExtractDataNonce(cdata []byte, nlen int) ([]byte, []byte, error) {
+	if !(nlen == 32 || nlen == 64) {
+		return nil, nil, errors.New("nonce must be either 32 or 64 bytes long")
+	} else if len(cdata) < nlen {
+		return nil, nil, errors.New("data is too short")
+	}
+	nonce := cdata[:nlen]
+	rest := cdata[nlen:]
+
+	return rest, nonce, nil
+}

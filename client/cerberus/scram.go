@@ -6,12 +6,14 @@ import (
 	"net"
 
 	"github.com/mowzhja/harpocrates/client/anubis"
+	"github.com/mowzhja/harpocrates/client/hermes"
+	"github.com/mowzhja/harpocrates/client/seshat"
 )
 
 // Authenticates client and server to each other.
 // Implements SCRAM authentication, as specified in RFC5802. Returns error if the authentication failed.
 func scram(conn net.Conn, cipher anubis.Cipher, uname, passwd []byte) ([]byte, error) {
-	_, err := fullWrite(conn, uname, cipher)
+	_, err := hermes.FullWrite(conn, uname, cipher)
 	if err != nil {
 		return nil, err
 	}
@@ -48,12 +50,12 @@ func scram(conn net.Conn, cipher anubis.Cipher, uname, passwd []byte) ([]byte, e
 // Does the challenge part of the challenge-response authentication.
 // Returns the salt and the server nonce and an error if anything went wrong.
 func doChallenge(conn net.Conn, cipher anubis.Cipher) ([]byte, []byte, error) {
-	sdata, _, err := cipher.DecRead(conn)
+	sdata, _, err := hermes.DecRead(conn, cipher)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	salt, snonce, err := extractDataNonce(sdata, 64)
+	salt, snonce, err := seshat.ExtractDataNonce(sdata, 64)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -67,7 +69,7 @@ func doChallenge(conn net.Conn, cipher anubis.Cipher) ([]byte, []byte, error) {
 // Verifies the authenticity of the client.
 // Returns the authMessage (for later use) and an error if the authentication failed for some reason (nil otherwise).
 func authClient(conn net.Conn, authMessage []byte, cipher anubis.Cipher) error {
-	resp, _, err := checkRead(conn, cipher)
+	resp, _, err := hermes.FullRead(conn, cipher)
 	if err != nil {
 		return err
 	} else if string(resp) != "SERV_OK" {
@@ -85,18 +87,18 @@ func authServer(conn net.Conn, authMessage, servKey []byte, cipher anubis.Cipher
 		return err
 	}
 
-	serverSignature, _, err := checkRead(conn, cipher)
+	serverSignature, _, err := hermes.FullRead(conn, cipher)
 	if err != nil {
 		return err
 	}
 
 	if subtle.ConstantTimeCompare(expectedSignature, serverSignature) == 1 {
-		_, err := fullWrite(conn, []byte("CLIENT_OK"), cipher)
+		_, err := hermes.FullWrite(conn, []byte("CLIENT_OK"), cipher)
 		if err != nil {
 			return err
 		}
 	} else {
-		_, err := fullWrite(conn, []byte("CLIENT_FAIL"), cipher)
+		_, err := hermes.FullWrite(conn, []byte("CLIENT_FAIL"), cipher)
 		if err != nil {
 			return err
 		}

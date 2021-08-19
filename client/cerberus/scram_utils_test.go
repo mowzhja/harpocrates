@@ -19,7 +19,7 @@ func Test_extractDataNonce(t *testing.T) {
 		rand.Read(nonce)
 		m := append(nonce, uname...)
 
-		d, n, err := extractDataNonce(m, 32)
+		d, n, err := seshat.ExtractDataNonce(m, 32)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -41,7 +41,7 @@ func Test_extractDataNonce(t *testing.T) {
 		rand.Read(nonce)
 		m := append(nonce, uname...)
 
-		d, n, err := extractDataNonce(m, 64)
+		d, n, err := seshat.ExtractDataNonce(m, 64)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -65,7 +65,7 @@ func Test_extractDataNonce_invalidNonces(t *testing.T) {
 		rand.Read(nonce)
 		m := append(nonce, unmae...)
 
-		_, _, err := extractDataNonce(m, i)
+		_, _, err := seshat.ExtractDataNonce(m, i)
 		if i == 32 {
 			if err != nil {
 				t.Fatal(err)
@@ -84,7 +84,7 @@ func Test_extractDataNonce_shortData(t *testing.T) {
 		m := make([]byte, i)
 		rand.Read(m)
 
-		_, _, err := extractDataNonce(m, 32)
+		_, _, err := seshat.ExtractDataNonce(m, 32)
 		if i < 32 {
 			if err == nil {
 				t.Fatalf("short data should raise an error (got datalen %d)", len(m))
@@ -150,7 +150,7 @@ func Test_computeParameters(t *testing.T) {
 		}
 
 		expectedMsg := seshat.MergeChunks(nonce, clientProof)
-		gotMsg, gotKey, err := computeParams(passwd, salt, nonce)
+		gotMsg, gotKey, _, err := computeParams(passwd, salt, nonce)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -172,7 +172,7 @@ func Test_computeParameters_emptyPasswdSalt(t *testing.T) {
 	rand.Read(nonce)
 	expectedError := "password, salt or both are empty"
 
-	authM, servK, err := computeParams([]byte(""), []byte("saltysalt"), nonce)
+	authM, servK, _, err := computeParams([]byte(""), []byte("saltysalt"), nonce)
 	if err == nil {
 		t.Fatal("an error should've been raised")
 	}
@@ -184,7 +184,7 @@ func Test_computeParameters_emptyPasswdSalt(t *testing.T) {
 		t.Fatal("auth message and server key should be nil when an error occurs")
 	}
 
-	authM, servK, err = computeParams([]byte("passypass"), []byte(""), nonce)
+	authM, servK, _, err = computeParams([]byte("passypass"), []byte(""), nonce)
 	if err == nil {
 		t.Fatal("an error should've been raised")
 	}
@@ -196,7 +196,7 @@ func Test_computeParameters_emptyPasswdSalt(t *testing.T) {
 		t.Fatal("auth message and server key should be nil when an error occurs")
 	}
 
-	authM, servK, err = computeParams([]byte(""), []byte(""), nonce)
+	authM, servK, _, err = computeParams([]byte(""), []byte(""), nonce)
 	if err == nil {
 		t.Fatal("an error should've been raised")
 	}
@@ -219,7 +219,7 @@ func Test_computeParameters_invalidNonce(t *testing.T) {
 		nonce := make([]byte, i)
 		rand.Read(nonce)
 
-		_, _, err := computeParams(passwd, salt, nonce)
+		_, _, _, err := computeParams(passwd, salt, nonce)
 		if i == 64 {
 			// not supposed to raise any error
 			if err != nil {
