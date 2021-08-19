@@ -9,6 +9,15 @@ import (
 	"github.com/mowzhja/harpocrates/client/seshat"
 )
 
+const PEER_PORT = "55555"
+
+// Establishes the P2P connection.
+// Return the established connection and an error.
+// func ConnectToPeer(ownClientKey, peerStoredKey []byte, peerIP string) (net.Conn, error) {
+// 	peerAddress := peerIP + PEER_PORT
+// 	tempConn, err := net.Dial("tcp", peerAddress)
+// }
+
 // Responsible for the actual ECDHE.
 // Returns the shared secret (the key for symmetric crypto) and an error if anything goes wrong.
 func DoECDHE(conn net.Conn) ([]byte, error) {
