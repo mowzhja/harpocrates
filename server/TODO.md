@@ -8,5 +8,6 @@
 - [x] Document functions better
 - [x] Test key negotiation with client
 - [x] Review project structure
+- [ ] Send the peer IP together with the stored key to the client
 - [ ] Test all the connections
 - [ ] INTEGRATION TESTS!
