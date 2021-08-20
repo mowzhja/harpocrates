@@ -24,12 +24,27 @@ func main() {
 	// close connection to server
 	conn.Close()
 
-	// TODO: start up the server part (not concurrently cause the server must be started on both peers before they can do anything)
-	// TODO: authenticate the peer over the new server (probably concurrently)
-	// TODO: start messaging (concurrently, with channels and selects probably)
-	// FIXME: i can't actually do that cause i need two different IPs! => maybe test on IMUNES
+	// FIXME: maybe test on IMUNES
 
-	// peerConn, err := hermes.ConnectToPeer(ownClientKey, peerStoredKey, peerIP)
-	// seshat.HandleErr(err)
+	// TODO: this should technically be a goroutine
+	// => the data passed between the peers is not necessarily as neat and orderly as it was between client and server
+	readConn, writeConn, err := hermes.ConnectToPeer(ownClientKey, peerStoredKey, peerIP)
+	seshat.HandleErr(err)
 
+	readc := make(chan string)
+	writec := make(chan string)
+	for {
+		// both functions in hermes, obvs
+		go hermes.PeerRead(readConn, readc)
+		go hermes.PeerWrite(writeConn, writec)
+
+		select {
+		case readMsg := <-readc:
+			// read from peer
+			printOnScreen(readMsg)
+		case writeMsg := <-writec:
+			// wrote to peer
+			writeToPeer(writeMsg)
+		}
+	}
 }
