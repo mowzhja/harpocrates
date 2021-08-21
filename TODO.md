@@ -4,5 +4,4 @@
 - [ ] test the connectivity through unit tests
 - [ ] add logging to both client and server (bookmarks)
 
-- [ ] Keep the code as free of external dependencies as possible (ideally everything should be in the stdlib)
 - [ ] ? Add packet fragmentation => useless for now, but could be used to extend the functionality of harpocrates so that each fragment is sent over different networks, making it more resistent to interception and attack
