@@ -18,33 +18,13 @@ func main() {
 	// TODO: get these as input/CLI arg
 	user := []byte("alice")
 	pass := []byte("alicespass")
-	ownClientKey, peerStoredKey, peerIP, err := cerberus.AuthWithServer(conn, sharedSecret, user, pass)
+	// peerAddr is a multiaddress (check out firefox)
+	ownClientKey, peerStoredKey, peerAddr, err := cerberus.AuthWithServer(conn, sharedSecret, user, pass)
 	seshat.HandleErr(err)
 
 	// close connection to server
 	conn.Close()
 
-	// FIXME: maybe test on IMUNES
+	hermes.PeerToPeer(ownClientKey, peerStoredKey, peerAddr)
 
-	// TODO: this should technically be a goroutine
-	// => the data passed between the peers is not necessarily as neat and orderly as it was between client and server
-	readConn, writeConn, err := hermes.ConnectToPeer(ownClientKey, peerStoredKey, peerIP)
-	seshat.HandleErr(err)
-
-	readc := make(chan string)
-	writec := make(chan string)
-	for {
-		// both functions in hermes, obvs
-		go hermes.PeerRead(readConn, readc)
-		go hermes.PeerWrite(writeConn, writec)
-
-		select {
-		case readMsg := <-readc:
-			// read from peer
-			printOnScreen(readMsg)
-		case writeMsg := <-writec:
-			// wrote to peer
-			writeToPeer(writeMsg)
-		}
-	}
 }
