@@ -53,7 +53,7 @@ func ExtractDataNonce(cdata []byte, nlen int) ([]byte, []byte, error) {
 		return nil, nil, errors.New("data is too short")
 	}
 	nonce := cdata[:nlen]
-	rest := cdata[nlen:]
+	data := cdata[nlen:]
 
-	return rest, nonce, nil
+	return data, nonce, nil
 }

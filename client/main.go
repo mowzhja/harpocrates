@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net"
 
 	"github.com/mowzhja/harpocrates/client/cerberus"
@@ -21,6 +22,8 @@ func main() {
 	// peerAddr is a multiaddress (check out firefox)
 	ownClientKey, peerStoredKey, peerAddr, err := cerberus.AuthWithServer(conn, sharedSecret, user, pass)
 	seshat.HandleErr(err)
+
+	fmt.Println("done with server auth")
 
 	// close connection to server
 	conn.Close()

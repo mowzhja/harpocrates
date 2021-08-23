@@ -65,7 +65,7 @@ func DecRead(conn net.Conn, cipher anubis.Cipher) ([]byte, int, error) {
 // To mantain consistency with the net API, it returns the number of bytes written and an error.
 func Write(conn net.Conn, msg []byte) (int, error) {
 	writer := bufio.NewWriter(conn)
-	hexMsg := hex.EncodeToString(msg) + string('\n')
+	hexMsg := hex.EncodeToString(msg) + "\n"
 
 	n, err := writer.WriteString(hexMsg)
 	if err != nil {

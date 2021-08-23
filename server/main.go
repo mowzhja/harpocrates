@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"net"
 	"strings"
 
@@ -38,6 +39,8 @@ func handleClient(conn net.Conn) {
 
 	cipher, err := cerberus.DoMutualAuth(conn, sharedKey)
 	seshat.HandleErr(err)
+
+	fmt.Println("done with client auth")
 
 	err = hermes.ConnectPeers(conn, cipher)
 	seshat.HandleErr(err)

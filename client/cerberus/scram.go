@@ -3,6 +3,7 @@ package cerberus
 import (
 	"crypto/subtle"
 	"errors"
+	"fmt"
 	"net"
 
 	"github.com/mowzhja/harpocrates/client/anubis"
@@ -33,6 +34,7 @@ func scram(conn net.Conn, cipher anubis.Cipher, uname, passwd []byte) ([]byte, e
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("computed params")
 
 	err = authClient(conn, authMessage, cipher)
 	if err != nil {
@@ -69,11 +71,19 @@ func doChallenge(conn net.Conn, cipher anubis.Cipher) ([]byte, []byte, error) {
 // Verifies the authenticity of the client.
 // Returns the authMessage (for later use) and an error if the authentication failed for some reason (nil otherwise).
 func authClient(conn net.Conn, authMessage []byte, cipher anubis.Cipher) error {
-	resp, _, err := hermes.FullRead(conn, cipher)
+	_, err := hermes.FullWrite(conn, authMessage, cipher)
 	if err != nil {
 		return err
-	} else if string(resp) != "SERV_OK" {
-		return errors.New("client authentication failed")
+	}
+
+	resp, _, err := hermes.FullRead(conn, cipher)
+	fmt.Println(string(resp))
+	if err != nil {
+		return err
+	} else {
+		if string(resp) != "SERVER_OK" {
+			return errors.New("client authentication failed")
+		}
 	}
 
 	return nil

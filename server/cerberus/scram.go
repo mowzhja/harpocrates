@@ -5,7 +5,9 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
+	"encoding/hex"
 	"errors"
+	"fmt"
 	"net"
 
 	"github.com/mowzhja/harpocrates/server/anubis"
@@ -33,23 +35,43 @@ func scram(conn net.Conn, cipher anubis.Cipher) error {
 		return err
 	}
 
+	fmt.Println(hex.EncodeToString(salt))
+
 	clientProof, nonce, err := doChallenge(conn, cnonce, salt, cipher)
 	if err != nil {
 		return err
 	}
 
 	err = cipher.UpdateNonce(nonce)
-	if err != nil {
-		return err
-	}
-
-	err = authClient(clientProof, cipher.Nonce(), storedKey)
+	// notify the client of how the challenge went
 	if err != nil {
 		_, err = hermes.FullWrite(conn, []byte("SERVER_FAIL"), cipher)
 		if err != nil {
 			return err
 		}
 		return err
+	}
+	if err == nil {
+		_, err = hermes.FullWrite(conn, []byte("SERVER_OK"), cipher)
+		if err != nil {
+			return err
+		}
+	}
+
+	fmt.Println("succ challenge")
+	err = authClient(clientProof, cipher.Nonce(), storedKey)
+	if err != nil {
+		fmt.Println(err)
+		_, err = hermes.FullWrite(conn, []byte("SERVER_FAIL"), cipher)
+		if err != nil {
+			return err
+		}
+		return err
+	} else {
+		_, err = hermes.FullWrite(conn, []byte("SERVER_OK"), cipher)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = authServer(conn, clientProof, servKey, cipher)
@@ -71,7 +93,7 @@ func doChallenge(conn net.Conn, cnonce, salt []byte, cipher anubis.Cipher) ([]by
 
 	snonce = seshat.MergeChunks(cnonce, snonce) // nonce used for the rest of the authentication procedure (by both client and server)
 
-	sdata := seshat.MergeChunks(cnonce, salt)
+	sdata := seshat.MergeChunks(snonce, salt)
 	_, err = hermes.EncWrite(conn, cipher, sdata)
 	if err != nil {
 		return nil, nil, err
@@ -81,6 +103,7 @@ func doChallenge(conn net.Conn, cnonce, salt []byte, cipher anubis.Cipher) ([]by
 	if err != nil {
 		return nil, nil, err
 	}
+	fmt.Println("am", len(authMessage))
 
 	clientProof, cnonce, err := seshat.ExtractDataNonce(authMessage, 64)
 	if err != nil {
@@ -91,6 +114,7 @@ func doChallenge(conn net.Conn, cnonce, salt []byte, cipher anubis.Cipher) ([]by
 		return nil, nil, errors.New("the client and server nonces don't match")
 	}
 
+	fmt.Println("cp", len(clientProof))
 	return clientProof, snonce, nil
 }
 
@@ -100,6 +124,8 @@ func authClient(clientProof, nonce, storedKey []byte) error {
 	clientSignature := hmac.New(sha256.New, storedKey)
 	clientSignature.Write(nonce) // ! changed from the RFC !
 
+	fmt.Println("cs", len(clientSignature.Sum(nil)))
+	fmt.Println("cp", len(clientProof))
 	clientKey, err := seshat.XOR(clientSignature.Sum(nil), clientProof)
 	if err != nil {
 		return err
@@ -131,8 +157,7 @@ func authServer(conn net.Conn, clientProof, servKey []byte, cipher anubis.Cipher
 	if err != nil {
 		return err
 	}
-
-	if string(resp) == "CLIENT_FAIL" {
+	if string(resp) != "CLIENT_OK" {
 		return errors.New("server authentication failed")
 	}
 
