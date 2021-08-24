@@ -33,8 +33,9 @@ func GetCorrespondingInfo(uname string) ([]byte, []byte, []byte, error) {
 			// got a match
 			// no need to check errors (the file has been generated automatically, i know for a fact the hex encoding is correct)
 			salt, _ = hex.DecodeString(record[1])
-			storedKey, _ = hex.DecodeString(record[2])
-			servKey, _ = hex.DecodeString(record[3])
+			// record[2] is the saltedPassword
+			storedKey, _ = hex.DecodeString(record[3])
+			servKey, _ = hex.DecodeString(record[4])
 		}
 	}
 

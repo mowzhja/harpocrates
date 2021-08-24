@@ -34,7 +34,7 @@ func XOR(x, y []byte) ([]byte, error) {
 	return nil, errors.New("byte strings should have the same length to XOR")
 }
 
-// Merges a bunch of chunks (of type []byte).
+// Merges a bunch of chunks (of type []byte), mantaining the order in which they were given as arguments.
 // Returns the slab resulting from the merger.
 func MergeChunks(chunks ...[]byte) []byte {
 	slab := []byte{}
@@ -46,7 +46,7 @@ func MergeChunks(chunks ...[]byte) []byte {
 	return slab
 }
 
-// For convenience, extract the nonce and the data contained in a client message.
+// For convenience, extract the nonce and the data contained in a TCP message.
 // Returns the data, the nonce and an error (nil if all good), in the order specified.
 func ExtractDataNonce(cdata []byte, nlen int) ([]byte, []byte, error) {
 	if !(nlen == 32 || nlen == 64) {

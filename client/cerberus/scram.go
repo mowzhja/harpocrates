@@ -2,6 +2,7 @@ package cerberus
 
 import (
 	"crypto/subtle"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net"
@@ -71,7 +72,7 @@ func doChallenge(conn net.Conn, cipher anubis.Cipher) ([]byte, []byte, error) {
 // Verifies the authenticity of the client.
 // Returns the authMessage (for later use) and an error if the authentication failed for some reason (nil otherwise).
 func authClient(conn net.Conn, authMessage []byte, cipher anubis.Cipher) error {
-	_, err := hermes.FullWrite(conn, authMessage, cipher)
+	_, err := hermes.EncWrite(conn, cipher, authMessage)
 	if err != nil {
 		return err
 	}
@@ -101,6 +102,7 @@ func authServer(conn net.Conn, authMessage, servKey []byte, cipher anubis.Cipher
 	if err != nil {
 		return err
 	}
+	fmt.Println(hex.EncodeToString(serverSignature))
 
 	if subtle.ConstantTimeCompare(expectedSignature, serverSignature) == 1 {
 		_, err := hermes.FullWrite(conn, []byte("CLIENT_OK"), cipher)

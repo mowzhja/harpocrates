@@ -131,6 +131,8 @@ func authClient(clientProof, nonce, storedKey []byte) error {
 		return err
 	}
 
+	fmt.Println(hex.EncodeToString(storedKey))
+
 	expectedKey := sha256.Sum256(clientKey)
 	if subtle.ConstantTimeCompare(storedKey, expectedKey[:]) != 1 {
 		return errors.New("stored key and the client key don't match")
@@ -147,6 +149,8 @@ func authServer(conn net.Conn, clientProof, servKey []byte, cipher anubis.Cipher
 	if err != nil {
 		return err
 	}
+
+	fmt.Println(hex.EncodeToString(serverSignature))
 
 	_, err = hermes.FullWrite(conn, serverSignature, cipher)
 	if err != nil {

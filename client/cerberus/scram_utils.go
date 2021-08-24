@@ -25,8 +25,8 @@ func computeParams(passwd, salt, nonce []byte) ([]byte, []byte, []byte, error) {
 	clientKey.Write([]byte("Client Key"))
 	servKey := hmac.New(sha256.New, saltedPasswd)
 	servKey.Write([]byte("Server Key"))
-
 	storedKey := sha256.Sum256(clientKey.Sum(nil))
+
 	clientSignature := hmac.New(sha256.New, storedKey[:])
 	clientSignature.Write(nonce)
 
