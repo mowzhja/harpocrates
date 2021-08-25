@@ -5,7 +5,6 @@ import (
 	"crypto/subtle"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"net"
 	"strings"
 
@@ -20,7 +19,6 @@ func FullRead(conn net.Conn, cipher anubis.Cipher) ([]byte, int, error) {
 	if err != nil {
 		return nil, 0, err
 	}
-	fmt.Println("r->", hex.EncodeToString(m))
 
 	msg, nonce, err := seshat.ExtractDataNonce(m, 64)
 	if err != nil {

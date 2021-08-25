@@ -2,7 +2,6 @@ package cerberus
 
 import (
 	"crypto/subtle"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"net"
@@ -24,6 +23,7 @@ func scram(conn net.Conn, cipher anubis.Cipher, uname, passwd []byte) ([]byte, e
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("[+] Challenge successful...")
 
 	// from this point forth the nonce is 64 bytes long (client + server)
 	err = cipher.UpdateNonce(snonce)
@@ -35,17 +35,18 @@ func scram(conn net.Conn, cipher anubis.Cipher, uname, passwd []byte) ([]byte, e
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("computed params")
 
 	err = authClient(conn, authMessage, cipher)
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("[+] Client authentication successful...")
 
 	err = authServer(conn, authMessage, servKey, cipher)
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("[+] Server authentication successful...")
 
 	return clientKey, nil
 }
@@ -78,13 +79,11 @@ func authClient(conn net.Conn, authMessage []byte, cipher anubis.Cipher) error {
 	}
 
 	resp, _, err := hermes.FullRead(conn, cipher)
-	fmt.Println(string(resp))
 	if err != nil {
 		return err
-	} else {
-		if string(resp) != "SERVER_OK" {
-			return errors.New("client authentication failed")
-		}
+	}
+	if string(resp) != "SERVER_OK" {
+		return errors.New("client authentication failed")
 	}
 
 	return nil
@@ -102,7 +101,6 @@ func authServer(conn net.Conn, authMessage, servKey []byte, cipher anubis.Cipher
 	if err != nil {
 		return err
 	}
-	fmt.Println(hex.EncodeToString(serverSignature))
 
 	if subtle.ConstantTimeCompare(expectedSignature, serverSignature) == 1 {
 		_, err := hermes.FullWrite(conn, []byte("CLIENT_OK"), cipher)

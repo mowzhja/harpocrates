@@ -16,7 +16,7 @@ func Test_authClient(t *testing.T) {
 	salt := make([]byte, 32)
 	rand.Read(salt)
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 2; i++ {
 		// made up parameters for SCRAM
 		nonce := make([]byte, 64) // client-server nonce
 		rand.Read(nonce)

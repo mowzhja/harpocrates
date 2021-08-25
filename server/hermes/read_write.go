@@ -5,7 +5,6 @@ import (
 	"crypto/subtle"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"net"
 	"strings"
 
@@ -37,7 +36,6 @@ func FullRead(conn net.Conn, cipher anubis.Cipher) ([]byte, int, error) {
 // Returns number of bytes send and an error.
 func FullWrite(conn net.Conn, msg []byte, cipher anubis.Cipher) (int, error) {
 	data := seshat.MergeChunks(cipher.Nonce(), msg)
-	fmt.Println("w->", hex.EncodeToString(data))
 	n, err := EncWrite(conn, cipher, data)
 	if err != nil {
 		return 0, err

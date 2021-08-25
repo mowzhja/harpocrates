@@ -23,6 +23,8 @@ func main() {
 	listener, err := net.Listen("tcp", address.String())
 	seshat.HandleErr(err)
 
+	fmt.Println("[+] Started listener at", address.String())
+
 	for {
 		conn, err := listener.Accept()
 		seshat.HandleErr(err)
@@ -32,16 +34,15 @@ func main() {
 }
 
 func handleClient(conn net.Conn) {
-	defer conn.Close()
 
 	sharedKey, err := hermes.DoECDHE(conn)
 	seshat.HandleErr(err)
 
-	cipher, err := cerberus.DoMutualAuth(conn, sharedKey)
+	_, err = cerberus.DoMutualAuth(conn, sharedKey)
 	seshat.HandleErr(err)
 
-	fmt.Println("done with client auth")
+	conn.Close()
 
-	err = hermes.ConnectPeers(conn, cipher)
-	seshat.HandleErr(err)
+	// err = hermes.ConnectPeers(conn, cipher)
+	// seshat.HandleErr(err)
 }

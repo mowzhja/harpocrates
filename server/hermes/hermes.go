@@ -4,6 +4,7 @@ package hermes
 import (
 	"crypto/elliptic"
 	"crypto/sha512"
+	"fmt"
 	"net"
 
 	"github.com/mowzhja/harpocrates/server/anubis"
@@ -14,16 +15,19 @@ import (
 // Connects the two peers with one another, thus ending the server's function.
 // Returns an error if anything went wrong.
 func ConnectPeers(conn net.Conn, cipher anubis.Cipher) error {
+	fmt.Println("connecting peers")
 	peer_uname, _, err := FullRead(conn, cipher)
 	if err != nil {
 		return err
 	}
+	fmt.Println("info on", string(peer_uname))
 
 	// check for existence
 	_, peerStoredKey, _, err := coeus.GetCorrespondingInfo(string(peer_uname))
 	if err != nil {
 		return err
 	}
+	fmt.Println("here")
 
 	_, err = FullWrite(conn, peerStoredKey, cipher)
 	if err != nil {

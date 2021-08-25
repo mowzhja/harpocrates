@@ -4,15 +4,12 @@ package seshat
 
 import (
 	"errors"
-	"fmt"
-	"os"
 )
 
 // Error handler for main.
 func HandleErr(err error) {
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "fatal error: %s", err.Error())
-		os.Exit(1)
+		panic(err)
 	}
 }
 

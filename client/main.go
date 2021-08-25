@@ -23,10 +23,10 @@ func main() {
 	ownClientKey, peerStoredKey, peerAddr, err := cerberus.AuthWithServer(conn, sharedSecret, user, pass)
 	seshat.HandleErr(err)
 
-	fmt.Println("done with server auth")
-
 	// close connection to server
 	conn.Close()
+
+	fmt.Printf("\n[+] Initiating peer to peer connection at %s\n...", peerAddr)
 
 	hermes.PeerToPeer(ownClientKey, peerStoredKey, peerAddr)
 
