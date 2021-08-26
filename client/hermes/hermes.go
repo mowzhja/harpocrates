@@ -2,7 +2,6 @@
 package hermes
 
 import (
-	"context"
 	"crypto/elliptic"
 	"crypto/sha512"
 	"net"
@@ -10,24 +9,24 @@ import (
 	"github.com/mowzhja/harpocrates/client/seshat"
 )
 
-// Establishes and manages the P2P connection.
-func PeerToPeer(ownClientKey, peerStoredKey []byte, peerAddr string) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+// // Establishes and manages the P2P connection.
+// func PeerToPeer(ownClientKey, peerStoredKey []byte, peerAddr string) {
+// 	ctx, cancel := context.WithCancel(context.Background())
+// 	defer cancel()
 
-	host, err := makeHost(ctx, "127.0.0.1", 55555)
-	seshat.HandleErr(err)
+// 	host, err := makeHost(ctx, "127.0.0.1", 55555)
+// 	seshat.HandleErr(err)
 
-	rw, err := startPeerAndConnect(ctx, host, peerAddr)
-	seshat.HandleErr(err)
+// 	rw, err := startPeerAndConnect(ctx, host, peerAddr)
+// 	seshat.HandleErr(err)
 
-	// Create a thread to read and write data.
-	go peerWrite(rw)
-	go peerRead(rw)
+// 	// Create a thread to read and write data.
+// 	go peerWrite(rw)
+// 	go peerRead(rw)
 
-	// Wait forever
-	select {}
-}
+// 	// Wait forever
+// 	select {}
+// }
 
 // Responsible for the actual ECDHE.
 // Returns the shared secret (the key for symmetric crypto) and an error if anything goes wrong.

@@ -34,12 +34,17 @@ func main() {
 }
 
 func handleClient(conn net.Conn) {
-
 	sharedKey, err := hermes.DoECDHE(conn)
-	seshat.HandleErr(err)
+	if err != nil {
+		conn.Close()
+		return
+	}
 
 	_, err = cerberus.DoMutualAuth(conn, sharedKey)
-	seshat.HandleErr(err)
+	if err != nil {
+		conn.Close()
+		return
+	}
 
 	conn.Close()
 

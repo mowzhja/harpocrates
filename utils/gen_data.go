@@ -65,11 +65,11 @@ func makeRecord(uname, passwd string) []string {
 	return record
 }
 
-func main() {
-	err := genData("user_data.csv")
-	if err != nil {
-		panic(err)
-	}
+// func main() {
+// 	err := genData("user_data.csv")
+// 	if err != nil {
+// 		panic(err)
+// 	}
 
-	fmt.Println("[+] Done.")
-}
+// 	fmt.Println("[+] Done.")
+// }
