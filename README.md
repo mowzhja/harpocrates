@@ -1,3 +1,6 @@
+# ACHTUNG
+THIS PROJECT IS DISCONTINUED, REPO WILL PROBABLY BE SOON DELETED!
+
 # About
 harpocrates is a university project for a Networking class.
 It's a protocol (prototype) meant to allow secure one-on-one communication. It's written in Go and uses TCP sockets.
